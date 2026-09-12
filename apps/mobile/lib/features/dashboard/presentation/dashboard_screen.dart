@@ -179,6 +179,9 @@ class _DashboardContent extends ConsumerWidget {
   ];
 }
 
+// Legacy widget kept for compatibility with old previews; the floating
+// assistant is the only entry point in the current interface.
+// ignore: unused_element
 class _AiLaunchCard extends StatelessWidget {
   const _AiLaunchCard();
 

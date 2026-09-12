@@ -71,6 +71,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/mock_pastores/
     - assets/Logo.svg
 
   fonts:
