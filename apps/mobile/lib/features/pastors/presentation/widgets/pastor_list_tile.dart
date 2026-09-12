@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/utils/contact_actions.dart';
+import '../../../../core/utils/demo_pastor_photos.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/person_avatar.dart';
@@ -51,7 +52,12 @@ class PastorListTile extends StatelessWidget {
         children: [
           PersonAvatar(
             name: pastor.pastoralName,
-            photoUrl: pastor.photoUrl,
+            photoUrl:
+                pastor.photoUrl ??
+                DemoPastorPhotos.forPastor(
+                  id: pastor.id,
+                  name: pastor.pastoralName,
+                ),
             size: 46,
           ),
           const SizedBox(width: AppTokens.space12),

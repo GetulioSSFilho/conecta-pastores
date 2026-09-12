@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/responsive/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
+import '../../../core/utils/demo_pastor_photos.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../../../core/widgets/paged_list_view.dart';
@@ -1264,15 +1265,9 @@ _DemoTreeNode _completeDemoTree() {
     'Teixeira',
     'Pereira',
   ];
-  const photos = [
-    'assets/images/pastor_joao.png',
-    'assets/images/pastora_ana.png',
-    'assets/images/pastor_marcos.png',
-    'assets/images/pastora_lucia.png',
-    'assets/images/pastor_carlos.png',
-  ];
-
   var pastorIndex = 0;
+  var photoIndex = 0;
+  String nextPhoto() => DemoPastorPhotos.tree(photoIndex++);
   var regionalIndex = 0;
   var subRegionalIndex = 0;
   final overRegionalNodes = <_DemoTreeNode>[];
@@ -1316,7 +1311,7 @@ _DemoTreeNode _completeDemoTree() {
               id: index == 0 ? 'pastor-joao' : 'pastor-$index',
               name: name,
               detail: detail,
-              image: photos[index % photos.length],
+              image: nextPhoto(),
               level: _DemoTreeLevel.local,
               detailColor: index == 2 ? AppColors.accent : AppColors.success,
               nextDetail: index.isEven ? 'Pr\u00f3ximo cuidado: 18/09' : null,
@@ -1331,7 +1326,7 @@ _DemoTreeNode _completeDemoTree() {
             id: subId,
             name: subName,
             detail: 'Sub-regional \u00b7 ${over.$5[regionIndex]}',
-            image: photos[(subRegionalIndex + 2) % photos.length],
+            image: nextPhoto(),
             level: _DemoTreeLevel.subRegional,
             children: localNodes,
           ),
@@ -1344,7 +1339,7 @@ _DemoTreeNode _completeDemoTree() {
           id: regionId,
           name: regionalName,
           detail: 'Regional \u00b7 ${over.$5[regionIndex]}',
-          image: photos[(regionalIndex + 1) % photos.length],
+          image: nextPhoto(),
           level: _DemoTreeLevel.regional,
           children: subRegionalNodes,
         ),
@@ -1355,7 +1350,7 @@ _DemoTreeNode _completeDemoTree() {
         id: over.$1,
         name: over.$2,
         detail: 'Sobre-regional \u00b7 ${over.$3}',
-        image: over.$4,
+        image: nextPhoto(),
         level: _DemoTreeLevel.overRegional,
         children: regionalNodes,
       ),
@@ -1366,7 +1361,7 @@ _DemoTreeNode _completeDemoTree() {
     id: 'presidente',
     name: 'Pr. Carlos Mendes',
     detail: 'Presidente \u00b7 Igreja Monte Carmo',
-    image: 'assets/images/pastor_carlos.png',
+    image: nextPhoto(),
     level: _DemoTreeLevel.president,
     children: overRegionalNodes,
   );
@@ -1693,16 +1688,17 @@ class _TreePersonCard extends StatelessWidget {
                   CircleAvatar(
                     radius: emphasized ? 28 : 24,
                     backgroundColor: AppColors.softPrimary,
-                    foregroundImage: image == null ? null : AssetImage(image!),
-                    child: image == null
-                        ? Text(
-                            initials ?? _initials(name),
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          )
-                        : null,
+                    foregroundImage: image == null
+                        ? null
+                        : _treeImageProvider(image!),
+                    onForegroundImageError: image == null ? null : (_, _) {},
+                    child: Text(
+                      initials ?? _initials(name),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ),
                   if (warning)
                     const Positioned(
@@ -1751,6 +1747,9 @@ class _TreePersonCard extends StatelessWidget {
     );
   }
 }
+
+ImageProvider<Object> _treeImageProvider(String source) =>
+    source.startsWith('http') ? NetworkImage(source) : AssetImage(source);
 
 class _TreeLegend extends StatelessWidget {
   const _TreeLegend();
