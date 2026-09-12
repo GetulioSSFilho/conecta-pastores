@@ -13,6 +13,7 @@ import '../../../core/widgets/async_value_view.dart';
 import '../../../core/widgets/paged_list_view.dart';
 import '../../../core/widgets/searchable_select.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../auth/domain/auth_user.dart';
 import '../../churches/data/church_options_provider.dart';
 import '../../pastors/domain/pastor_status.dart';
 import '../../pastors/presentation/widgets/pastor_list_tile.dart';
@@ -496,7 +497,7 @@ class _NetworkTree extends StatelessWidget {
               style: const TextStyle(color: AppColors.mutedInk, fontSize: 12),
             ),
           ),
-        _TreeGraph(filter: filter),
+        _ExpandableTreeGraph(filter: filter),
         const SizedBox(height: AppTokens.space16),
         const _TreeLegend(),
       ],
@@ -507,6 +508,7 @@ class _NetworkTree extends StatelessWidget {
 /// Organograma visual da referência. É deliberadamente um exemplo local:
 /// permite validar a composição antes de decidir o contrato persistido da
 /// árvore real.
+// ignore: unused_element
 class _TreeGraph extends StatelessWidget {
   const _TreeGraph({required this.filter});
 
@@ -690,6 +692,16 @@ class _TreeGraph extends StatelessWidget {
   }
 }
 
+/// Versão reutilizável do organograma para o dashboard e para a tela Minha
+/// Rede. Mantém a mesma árvore, expansão e experiência de zoom.
+class NetworkTreeOrganogram extends StatelessWidget {
+  const NetworkTreeOrganogram({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      const _ExpandableTreeGraph(filter: _TreeFilter.all);
+}
+
 /// Viewport do organograma com zoom por pinça no celular e controles para
 /// mouse, teclado e apresentação em telas maiores.
 class _ZoomableTree extends StatefulWidget {
@@ -792,6 +804,468 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
       ),
     );
   }
+}
+
+/// Organograma hierárquico expansível da demonstração.
+///
+/// Presidente e sobre-regionais aparecem no primeiro nível. Cada botão "+"
+/// abre somente o próximo nível, mantendo a leitura limpa mesmo com muitos
+/// pastores. A árvore é reduzida ao escopo do perfil antes de ser desenhada.
+class _ExpandableTreeGraph extends ConsumerStatefulWidget {
+  const _ExpandableTreeGraph({required this.filter});
+
+  final _TreeFilter filter;
+
+  @override
+  ConsumerState<_ExpandableTreeGraph> createState() =>
+      _ExpandableTreeGraphState();
+}
+
+class _ExpandableTreeGraphState extends ConsumerState<_ExpandableTreeGraph> {
+  final _expanded = <String>{'presidente'};
+
+  @override
+  Widget build(BuildContext context) {
+    final root = _treeForScope(ref.watch(currentUserProvider));
+    final layout = _ExpandableTreeLayout.build(root, _expanded);
+    const graphPadding = 28.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = math.max(
+          constraints.maxWidth,
+          layout.width + graphPadding * 2,
+        );
+        return _ZoomableTree(
+          child: SizedBox(
+            width: width,
+            height: layout.height + graphPadding * 2,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _ExpandableTreeConnectorPainter(
+                      edges: layout.edges,
+                      offset: const Offset(graphPadding, graphPadding),
+                    ),
+                  ),
+                ),
+                for (final item in layout.nodes)
+                  Positioned(
+                    left: item.position.dx + graphPadding,
+                    top: item.position.dy + graphPadding,
+                    child: _ExpandableTreePersonCard(
+                      node: item.node,
+                      expanded: _expanded.contains(item.node.id),
+                      onToggle: () => setState(() {
+                        if (!_expanded.add(item.node.id)) {
+                          _expanded.remove(item.node.id);
+                        }
+                      }),
+                      detail: _treeDetail(item.node),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _treeDetail(_DemoTreeNode node) {
+    if (widget.filter == _TreeFilter.thisWeek && node.nextDetail != null) {
+      return node.nextDetail!;
+    }
+    return node.detail;
+  }
+}
+
+enum _DemoTreeLevel { president, overRegional, regional, subRegional, local }
+
+class _DemoTreeNode {
+  const _DemoTreeNode({
+    required this.id,
+    required this.name,
+    required this.detail,
+    required this.image,
+    required this.level,
+    this.children = const [],
+    this.detailColor = AppColors.primary,
+    this.nextDetail,
+    this.warning = false,
+  });
+
+  final String id;
+  final String name;
+  final String detail;
+  final String image;
+  final _DemoTreeLevel level;
+  final List<_DemoTreeNode> children;
+  final Color detailColor;
+  final String? nextDetail;
+  final bool warning;
+}
+
+_DemoTreeNode _treeForScope(AuthUser? user) {
+  final root = _demoTree();
+  if (user == null) return root;
+  final roles = user.roles;
+  if (roles.contains('GLOBAL_ADMIN') || roles.contains('NATIONAL_LEADER')) {
+    return root;
+  }
+  if (roles.contains('REGIONAL_LEADER')) {
+    return _treeBranch(root, const ['presidente', 'sobre-sudeste']);
+  }
+  if (roles.contains('SUPERVISOR') || user.isLeader) {
+    return _treeBranch(root, const [
+      'presidente',
+      'sobre-sudeste',
+      'regional-rmbh',
+      'sub-centro',
+    ], includeDescendants: true);
+  }
+  return _treeBranch(root, const [
+    'presidente',
+    'sobre-sudeste',
+    'regional-rmbh',
+    'sub-centro',
+    'pastor-joao',
+  ]);
+}
+
+_DemoTreeNode _treeBranch(
+  _DemoTreeNode node,
+  List<String> path, {
+  bool includeDescendants = false,
+}) {
+  if (path.length <= 1) {
+    return includeDescendants ? node : _demoCopy(node, const []);
+  }
+  final child = node.children.firstWhere((item) => item.id == path[1]);
+  return _demoCopy(node, [
+    _treeBranch(child, path.sublist(1), includeDescendants: includeDescendants),
+  ]);
+}
+
+_DemoTreeNode _demoCopy(_DemoTreeNode node, List<_DemoTreeNode> children) =>
+    _DemoTreeNode(
+      id: node.id,
+      name: node.name,
+      detail: node.detail,
+      image: node.image,
+      level: node.level,
+      children: children,
+      detailColor: node.detailColor,
+      nextDetail: node.nextDetail,
+      warning: node.warning,
+    );
+
+_DemoTreeNode _demoTree() => const _DemoTreeNode(
+  id: 'presidente',
+  name: 'Pr. Carlos Mendes',
+  detail: 'Presidente · Igreja Monte Carmo',
+  image: 'assets/images/pastor_carlos.png',
+  level: _DemoTreeLevel.president,
+  children: [
+    _DemoTreeNode(
+      id: 'sobre-sudeste',
+      name: 'Pr. Paulo Ribeiro',
+      detail: 'Sobre-regional · Sudeste',
+      image: 'assets/images/pastor_joao.png',
+      level: _DemoTreeLevel.overRegional,
+      children: [
+        _DemoTreeNode(
+          id: 'regional-rmbh',
+          name: 'Pr. Jo\u00e3o Silva',
+          detail: 'Regional · RMBH',
+          image: 'assets/images/pastor_joao.png',
+          level: _DemoTreeLevel.regional,
+          children: [
+            _DemoTreeNode(
+              id: 'sub-centro',
+              name: 'Pr. Lucas Ferreira',
+              detail: 'Sub-regional · Centro',
+              image: 'assets/images/pastor_marcos.png',
+              level: _DemoTreeLevel.subRegional,
+              children: [
+                _DemoTreeNode(
+                  id: 'pastor-joao',
+                  name: 'Pr. Jo\u00e3o Silva',
+                  detail: 'Pastor local · 8 dias',
+                  image: 'assets/images/pastor_joao.png',
+                  level: _DemoTreeLevel.local,
+                  detailColor: AppColors.success,
+                  nextDetail: 'Pr\u00f3ximo cuidado: 18/09',
+                ),
+                _DemoTreeNode(
+                  id: 'pastora-ana',
+                  name: 'Pra. Ana Souza',
+                  detail: 'Pastora local · 12 dias',
+                  image: 'assets/images/pastora_ana.png',
+                  level: _DemoTreeLevel.local,
+                  detailColor: AppColors.success,
+                  nextDetail: 'Pr\u00f3ximo cuidado: 20/09',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+    _DemoTreeNode(
+      id: 'sobre-centro-oeste',
+      name: 'Pra. Renata Almeida',
+      detail: 'Sobre-regional · Centro-Oeste',
+      image: 'assets/images/pastora_ana.png',
+      level: _DemoTreeLevel.overRegional,
+      children: [
+        _DemoTreeNode(
+          id: 'regional-brasilia',
+          name: 'Pra. Ana Oliveira',
+          detail: 'Regional · Bras\u00edlia',
+          image: 'assets/images/pastora_lucia.png',
+          level: _DemoTreeLevel.regional,
+          children: [
+            _DemoTreeNode(
+              id: 'sub-planalto',
+              name: 'Pr. Andr\u00e9 Rocha',
+              detail: 'Sub-regional · Planalto',
+              image: 'assets/images/pastor_carlos.png',
+              level: _DemoTreeLevel.subRegional,
+              children: [
+                _DemoTreeNode(
+                  id: 'pastor-marcos',
+                  name: 'Pr. Marcos Lima',
+                  detail: 'Pastor local · 54 dias',
+                  image: 'assets/images/pastor_marcos.png',
+                  level: _DemoTreeLevel.local,
+                  detailColor: AppColors.accent,
+                  nextDetail: 'Pr\u00f3ximo cuidado: 18/09',
+                  warning: true,
+                ),
+                _DemoTreeNode(
+                  id: 'pastor-eduardo',
+                  name: 'Pr. Eduardo Costa',
+                  detail: 'Pastor local · Agenda em dia',
+                  image: 'assets/images/pastor_carlos.png',
+                  level: _DemoTreeLevel.local,
+                  nextDetail: 'Pr\u00f3ximo cuidado: 18/09',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
+
+class _ExpandableTreeLayoutNode {
+  const _ExpandableTreeLayoutNode(this.position, this.node);
+
+  final Offset position;
+  final _DemoTreeNode node;
+}
+
+class _ExpandableTreeEdge {
+  const _ExpandableTreeEdge(this.from, this.to);
+
+  final Offset from;
+  final Offset to;
+}
+
+class _ExpandableTreeLayoutData {
+  const _ExpandableTreeLayoutData({
+    required this.width,
+    required this.height,
+    required this.nodes,
+    required this.edges,
+  });
+
+  final double width;
+  final double height;
+  final List<_ExpandableTreeLayoutNode> nodes;
+  final List<_ExpandableTreeEdge> edges;
+}
+
+class _ExpandableTreeLayout {
+  static const nodeWidth = 156.0;
+  static const nodeHeight = 142.0;
+  static const horizontalGap = 24.0;
+  static const verticalGap = 42.0;
+
+  static _ExpandableTreeLayoutData build(
+    _DemoTreeNode root,
+    Set<String> expanded,
+  ) {
+    final nodes = <_ExpandableTreeLayoutNode>[];
+    final edges = <_ExpandableTreeEdge>[];
+    final result = _measure(root, expanded, nodes, edges);
+    return _ExpandableTreeLayoutData(
+      width: result.width,
+      height: result.height,
+      nodes: nodes,
+      edges: edges,
+    );
+  }
+
+  static ({double width, double height}) _measure(
+    _DemoTreeNode node,
+    Set<String> expanded,
+    List<_ExpandableTreeLayoutNode> nodes,
+    List<_ExpandableTreeEdge> edges, {
+    double left = 0,
+    double top = 0,
+  }) {
+    final children = expanded.contains(node.id)
+        ? node.children
+        : const <_DemoTreeNode>[];
+    if (children.isEmpty) {
+      nodes.add(_ExpandableTreeLayoutNode(Offset(left, top), node));
+      return (width: nodeWidth, height: nodeHeight);
+    }
+
+    final childSizes = [
+      for (final child in children) _subtreeSize(child, expanded),
+    ];
+    final childrenWidth =
+        childSizes.fold<double>(0, (total, size) => total + size.width) +
+        horizontalGap * (children.length - 1);
+    final width = math.max(nodeWidth, childrenWidth);
+    final nodeLeft = left + (width - nodeWidth) / 2;
+    nodes.add(_ExpandableTreeLayoutNode(Offset(nodeLeft, top), node));
+
+    var childLeft = left + (width - childrenWidth) / 2;
+    final childTop = top + nodeHeight + verticalGap;
+    var maxChildHeight = 0.0;
+    for (var i = 0; i < children.length; i++) {
+      final child = children[i];
+      final childSize = _measure(
+        child,
+        expanded,
+        nodes,
+        edges,
+        left: childLeft,
+        top: childTop,
+      );
+      edges.add(
+        _ExpandableTreeEdge(
+          Offset(nodeLeft + nodeWidth / 2, top + nodeHeight),
+          Offset(childLeft + childSizes[i].width / 2, childTop),
+        ),
+      );
+      childLeft += childSizes[i].width + horizontalGap;
+      maxChildHeight = math.max(maxChildHeight, childSize.height);
+    }
+    return (width: width, height: nodeHeight + verticalGap + maxChildHeight);
+  }
+
+  static ({double width, double height}) _subtreeSize(
+    _DemoTreeNode node,
+    Set<String> expanded,
+  ) {
+    final nodes = <_ExpandableTreeLayoutNode>[];
+    final edges = <_ExpandableTreeEdge>[];
+    return _measure(node, expanded, nodes, edges);
+  }
+}
+
+class _ExpandableTreePersonCard extends StatelessWidget {
+  const _ExpandableTreePersonCard({
+    required this.node,
+    required this.expanded,
+    required this.onToggle,
+    required this.detail,
+  });
+
+  final _DemoTreeNode node;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _ExpandableTreeLayout.nodeWidth,
+      height: _ExpandableTreeLayout.nodeHeight,
+      child: Stack(
+        children: [
+          _TreePersonCard(
+            width: _ExpandableTreeLayout.nodeWidth,
+            height: _ExpandableTreeLayout.nodeHeight,
+            name: node.name,
+            detail: detail,
+            detailColor: node.detailColor,
+            image: node.image,
+            emphasized: node.level == _DemoTreeLevel.president,
+            warning: node.warning,
+          ),
+          if (node.children.isNotEmpty)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Semantics(
+                button: true,
+                label: expanded
+                    ? 'Recolher ${node.name}'
+                    : 'Expandir ${node.name}',
+                child: Material(
+                  color: AppColors.softPrimary,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onToggle,
+                    child: SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: Icon(
+                        expanded ? Icons.remove_rounded : Icons.add_rounded,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpandableTreeConnectorPainter extends CustomPainter {
+  const _ExpandableTreeConnectorPainter({
+    required this.edges,
+    required this.offset,
+  });
+
+  final List<_ExpandableTreeEdge> edges;
+  final Offset offset;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.primary.withValues(alpha: 0.5)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    for (final edge in edges) {
+      final from = edge.from + offset;
+      final to = edge.to + offset;
+      final middleY = from.dy + (to.dy - from.dy) / 2;
+      final path = Path()
+        ..moveTo(from.dx, from.dy)
+        ..lineTo(from.dx, middleY)
+        ..lineTo(to.dx, middleY)
+        ..lineTo(to.dx, to.dy);
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ExpandableTreeConnectorPainter oldDelegate) =>
+      oldDelegate.edges != edges || oldDelegate.offset != offset;
 }
 
 class _TreeConnectorPainter extends CustomPainter {

@@ -39,7 +39,7 @@ Widget _app() {
 void main() {
   setUpAll(() => initializeDateFormatting('pt_BR'));
 
-  testWidgets('árvore de exemplo renderiza a composição da referência', (
+  testWidgets('organograma inicia no presidente e permite expansão por nível', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -58,10 +58,15 @@ void main() {
     expect(find.text('Pr. Carlos Mendes'), findsOneWidget);
     expect(find.text('Pr. Paulo Ribeiro'), findsOneWidget);
     expect(find.text('Pra. Renata Almeida'), findsOneWidget);
-    expect(find.text('Pr. João Silva'), findsOneWidget);
-    expect(find.text('Pra. Ana Souza'), findsOneWidget);
-    expect(find.text('Último cuidado: 54 dias'), findsOneWidget);
-    expect(find.text('Próximo cuidado: 18/09'), findsOneWidget);
+    expect(find.text('Regional · RMBH'), findsNothing);
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+    expect(find.byTooltip('Aumentar zoom'), findsOneWidget);
+    expect(find.byTooltip('Diminuir zoom'), findsOneWidget);
+    expect(find.byTooltip('Redefinir zoom'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Expandir Pr. Paulo Ribeiro'));
+    await tester.pumpAndSettle();
+    expect(find.text('Regional · RMBH'), findsOneWidget);
+    expect(find.bySemanticsLabel('Expandir Pr. João Silva'), findsOneWidget);
   });
 
   testWidgets('indicadores longos da lista não causam overflow no celular', (

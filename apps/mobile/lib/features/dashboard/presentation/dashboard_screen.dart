@@ -18,6 +18,7 @@ import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../channel/domain/channel_post.dart';
 import '../../notifications/data/notifications_providers.dart';
+import '../../network/presentation/my_network_screen.dart';
 import '../data/dashboard_providers.dart';
 import '../domain/dashboard_models.dart';
 
@@ -38,8 +39,8 @@ class DashboardScreen extends ConsumerWidget {
     final sections = <Widget>[
       _Greeting(user: user, showActions: size.isCompact),
       ...switch (_dashboardRole(user)) {
-        _DashboardRole.president => _adminSections(size, user),
-        _DashboardRole.manager => _managerSections(size, user),
+        _DashboardRole.president => _adminSections(size),
+        _DashboardRole.manager => _managerSections(size),
         _DashboardRole.leader => _leaderSections(size),
         _DashboardRole.pastor => _pastorSections(size, user),
       },
@@ -96,12 +97,11 @@ class DashboardScreen extends ConsumerWidget {
     ),
   ];
 
-  List<Widget> _adminSections(WindowSize size, AuthUser user) => [
-    _AdminHero(user: user),
+  List<Widget> _adminSections(WindowSize size) => [
     const _AdminKpis(includeGlobal: true),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
-      left: const _AdminOrganogram(),
+      left: const _AdminTreePreview(),
       right: const _AdminInsights(),
     ),
     _TwoColumns(
@@ -116,12 +116,11 @@ class DashboardScreen extends ConsumerWidget {
     ),
   ];
 
-  List<Widget> _managerSections(WindowSize size, AuthUser user) => [
-    _AdminHero(user: user),
+  List<Widget> _managerSections(WindowSize size) => [
     const _AdminKpis(includeGlobal: false),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
-      left: const _AdminOrganogram(),
+      left: const _AdminTreePreview(),
       right: const _AdminInsights(),
     ),
     _TwoColumns(
@@ -301,6 +300,7 @@ class _MetricGrid extends StatelessWidget {
 // Lider
 // -----------------------------------------------------------------------------
 
+// ignore: unused_element
 class _AdminHero extends StatelessWidget {
   const _AdminHero({required this.user});
 
@@ -636,6 +636,35 @@ class _AdminKpiCard extends StatelessWidget {
   }
 }
 
+class _AdminTreePreview extends StatelessWidget {
+  const _AdminTreePreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(
+        AppTokens.space16,
+        AppTokens.space16,
+        AppTokens.space16,
+        AppTokens.space8,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SectionHeader(
+            title: 'Organograma da rede',
+            actionLabel: 'Abrir rede',
+            onAction: () => context.go('/network?view=tree'),
+          ),
+          const SizedBox(height: AppTokens.space8),
+          const NetworkTreeOrganogram(),
+        ],
+      ),
+    );
+  }
+}
+
+// ignore: unused_element
 class _AdminOrganogram extends ConsumerWidget {
   const _AdminOrganogram();
 
