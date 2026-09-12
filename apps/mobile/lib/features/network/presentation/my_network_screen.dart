@@ -523,8 +523,7 @@ class _TreeGraph extends StatelessWidget {
         final groupWidth = leafWidth * 2 + leafGap;
         final minimumWidth = groupWidth * 2 + branchGap;
         final width = math.max(constraints.maxWidth, minimumWidth);
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
+        return _ZoomableTree(
           child: SizedBox(
             width: width,
             height: 540,
@@ -687,6 +686,110 @@ class _TreeGraph extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Viewport do organograma com zoom por pinça no celular e controles para
+/// mouse, teclado e apresentação em telas maiores.
+class _ZoomableTree extends StatefulWidget {
+  const _ZoomableTree({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ZoomableTree> createState() => _ZoomableTreeState();
+}
+
+class _ZoomableTreeState extends State<_ZoomableTree> {
+  static const _minScale = 0.65;
+  static const _maxScale = 2.5;
+
+  final _controller = TransformationController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _scale(double factor) {
+    final current = _controller.value.getMaxScaleOnAxis();
+    final next = (current * factor).clamp(_minScale, _maxScale);
+    final matrix = Matrix4.copy(_controller.value)
+      ..setEntry(0, 0, next)
+      ..setEntry(1, 1, next)
+      ..setEntry(2, 2, next);
+    _controller.value = matrix;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 540,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppTokens.radius12),
+        child: Stack(
+          children: [
+            InteractiveViewer(
+              transformationController: _controller,
+              constrained: false,
+              minScale: _minScale,
+              maxScale: _maxScale,
+              boundaryMargin: const EdgeInsets.all(140),
+              panEnabled: true,
+              scaleEnabled: true,
+              child: widget.child,
+            ),
+            Positioned(
+              top: AppTokens.space12,
+              right: AppTokens.space12,
+              child: Material(
+                color: AppColors.surface.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(AppTokens.radius12),
+                elevation: 2,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Diminuir zoom',
+                      onPressed: () => _scale(0.8),
+                      icon: const Icon(Icons.remove_rounded),
+                    ),
+                    IconButton(
+                      tooltip: 'Aumentar zoom',
+                      onPressed: () => _scale(1.25),
+                      icon: const Icon(Icons.add_rounded),
+                    ),
+                    IconButton(
+                      tooltip: 'Redefinir zoom',
+                      onPressed: () => _controller.value = Matrix4.identity(),
+                      icon: const Icon(Icons.center_focus_strong_rounded),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: AppTokens.space12,
+              bottom: AppTokens.space12,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.ink.withValues(alpha: 0.72),
+                  borderRadius: BorderRadius.circular(AppTokens.pill),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  child: Text(
+                    'Pin\u00e7a para ampliar · arraste para navegar',
+                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
