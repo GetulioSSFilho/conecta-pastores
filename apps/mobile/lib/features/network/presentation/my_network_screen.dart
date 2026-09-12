@@ -758,9 +758,8 @@ class TreeScrollLockScope extends InheritedWidget {
 
   final ValueNotifier<bool> lock;
 
-  static ValueNotifier<bool>? maybeOf(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<TreeScrollLockScope>()
-      ?.lock;
+  static ValueNotifier<bool>? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<TreeScrollLockScope>()?.lock;
 
   @override
   bool updateShouldNotify(TreeScrollLockScope oldWidget) =>
@@ -793,11 +792,23 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
 
   void _scale(double factor) {
     final current = _controller.value.getMaxScaleOnAxis();
-    final next = (current * factor).clamp(_minScale, _maxScale);
+    final next = (current * factor).clamp(_minScale, _maxScale).toDouble();
     final matrix = Matrix4.copy(_controller.value)
       ..setEntry(0, 0, next)
       ..setEntry(1, 1, next)
       ..setEntry(2, 2, next);
+    _controller.value = matrix;
+  }
+
+  /// O InteractiveViewer limita a escala durante o gesto, mas o valor vindo
+  /// da pinça pode passar alguns décimos do limite entre dois frames. Fazemos
+  /// a mesma normalização dos botões e preservamos a posição do organograma.
+  void _clampScale() {
+    final current = _controller.value.getMaxScaleOnAxis();
+    final next = current.clamp(_minScale, _maxScale).toDouble();
+    if ((current - next).abs() < 0.0001 || current == 0) return;
+    final matrix = Matrix4.copy(_controller.value)
+      ..scaleByDouble(next / current, next / current, next / current, 1.0);
     _controller.value = matrix;
   }
 
@@ -833,6 +844,8 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
                 boundaryMargin: const EdgeInsets.all(180),
                 panEnabled: true,
                 scaleEnabled: true,
+                onInteractionUpdate: (_) => _clampScale(),
+                onInteractionEnd: (_) => _clampScale(),
                 clipBehavior: Clip.hardEdge,
                 child: widget.child,
               ),
