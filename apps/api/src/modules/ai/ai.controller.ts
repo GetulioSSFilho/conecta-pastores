@@ -22,4 +22,10 @@ export class AiController {
   intent(@CurrentUser() user: AuthenticatedUser, @Body() dto: AiIntentDto) {
     return this.copilot.navigate(user, dto.message);
   }
+
+  @Post('ask')
+  @ApiOperation({ summary: 'Responde uma pergunta com os dados autorizados do usuário ou navega por intenção explícita' })
+  ask(@CurrentUser() user: AuthenticatedUser, @Body() dto: AiIntentDto) {
+    return this.copilot.ask(user, dto.message);
+  }
 }

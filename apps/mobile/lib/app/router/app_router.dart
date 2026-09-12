@@ -19,7 +19,6 @@ import '../../features/credentials/presentation/credential_card_screen.dart';
 import '../../features/credentials/presentation/credential_scan_screen.dart';
 import '../../features/credentials/presentation/credential_verify_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
-import '../../features/ai/presentation/assistant_screen.dart';
 import '../../features/documents/presentation/documents_list_screen.dart';
 import '../../features/map/presentation/church_map_screen.dart';
 import '../../features/network/presentation/my_network_screen.dart';
@@ -116,7 +115,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppScaffold(location: state.uri.path, child: child),
         routes: [
           _page('/dashboard', (context, state) => const DashboardScreen()),
-          _page('/assistant', (context, state) => const AssistantScreen()),
           _page('/network', (context, state) => const MyNetworkScreen()),
           _page('/pastors', (context, state) => const PastorDirectoryScreen()),
           _page('/pastors/new', (context, state) => const PastorFormScreen()),

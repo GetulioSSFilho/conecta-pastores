@@ -116,7 +116,7 @@ class _AiAssistantSheetState extends ConsumerState<AiAssistantSheet> {
     try {
       final json = await ref
           .read(apiClientProvider)
-          .post('/ai/intent', body: {'message': text});
+          .post('/ai/ask', body: {'message': text});
       final result = AiIntentResult.fromJson(
         json is Map ? json.cast<String, dynamic>() : const {},
       );
@@ -175,7 +175,7 @@ class _AiAssistantSheetState extends ConsumerState<AiAssistantSheet> {
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                       Text(
-                        'Navegação e próximos passos',
+                        'Perguntas, dados e navegação',
                         style: TextStyle(
                           color: AppColors.mutedInk,
                           fontSize: 12,
@@ -230,7 +230,7 @@ class _AiAssistantSheetState extends ConsumerState<AiAssistantSheet> {
                         for (final prompt in [
                           'Abrir minha agenda',
                           'Ver minha rede',
-                          'O que priorizar hoje?',
+                          'Qual regional tem mais igrejas?',
                         ])
                           ActionChip(
                             label: Text(prompt),

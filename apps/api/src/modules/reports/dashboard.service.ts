@@ -68,6 +68,28 @@ export class DashboardService {
       .sort((a, b) => b.pastors - a.pastors || a.name.localeCompare(b.name));
   }
 
+  /** Igrejas por regional, sempre restritas ao escopo do indicador. */
+  async regionalChurchDistribution(user: AuthenticatedUser) {
+    const churchScope = await this.acl.churchWhere(user, PERMISSIONS.REPORT_READ);
+    const rows = await this.prisma.church.groupBy({
+      by: ['regionId'],
+      where: { AND: [churchScope, { deletedAt: null, regionId: { not: null } }] },
+      _count: { _all: true },
+    });
+    const regionIds = rows.flatMap((row) => (row.regionId ? [row.regionId] : []));
+    if (!regionIds.length) return [];
+    const regions = await this.prisma.region.findMany({
+      where: { id: { in: regionIds } },
+      select: { id: true, name: true },
+    });
+    const names = new Map(regions.map((region) => [region.id, region.name]));
+    return rows
+      .flatMap((row) => row.regionId && names.has(row.regionId)
+        ? [{ name: names.get(row.regionId)!, churches: row._count._all }]
+        : [])
+      .sort((a, b) => b.churches - a.churches || a.name.localeCompare(b.name));
+  }
+
   /**
    * Acompanhamentos realizados por semana na rede do usuario (fatos, sem julgamento).
    * Agrega em memoria apenas timestamps: volume pequeno (~1 registro por pastor a cada 2 semanas).

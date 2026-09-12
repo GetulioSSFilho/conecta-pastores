@@ -94,4 +94,39 @@ describe('AiCopilotService', () => {
     expect(rede.actionPath).toBeNull();
     expect(relatorios.actionPath).toBeNull();
   });
+
+  it('responde indicadores usando apenas dados autorizados', async () => {
+    const service = new AiCopilotService(
+      { isEnabled: false } as never,
+      {
+        pastor: jest.fn().mockResolvedValue({}),
+        regionalChurchDistribution: jest.fn().mockResolvedValue([
+          { name: 'RMBH', churches: 12 },
+          { name: 'Zona da Mata', churches: 4 },
+        ]),
+        countryDistribution: jest.fn().mockResolvedValue([]),
+      } as never,
+    );
+
+    const result = await service.ask(
+      user({ permissions: ['report.read'] as never }),
+      'Qual regional tem mais igrejas?',
+    );
+
+    expect(result.reply).toContain('RMBH');
+    expect(result.reply).toContain('12');
+    expect(result.actionPath).toBeNull();
+  });
+
+  it('não revela indicador fora da permissão do usuário', async () => {
+    const service = new AiCopilotService(
+      { isEnabled: false } as never,
+      { pastor: jest.fn().mockResolvedValue({}) } as never,
+    );
+
+    const result = await service.ask(user(), 'Qual regional tem mais igrejas?');
+
+    expect(result.reply).toContain('não está disponível');
+    expect(result.actionPath).toBeNull();
+  });
 });
