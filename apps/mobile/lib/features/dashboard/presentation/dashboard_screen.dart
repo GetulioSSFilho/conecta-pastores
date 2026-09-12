@@ -757,24 +757,16 @@ class _AdminTreePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppCard(
+      // O organograma ja se explica visualmente e possui seus proprios
+      // controles. Removemos o cabecalho para ganhar altura no celular e
+      // deixar os indicadores seguintes visiveis na mesma tela.
       padding: const EdgeInsets.fromLTRB(
-        AppTokens.space16,
-        AppTokens.space16,
-        AppTokens.space16,
+        AppTokens.space8,
+        AppTokens.space8,
+        AppTokens.space8,
         AppTokens.space8,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SectionHeader(
-            title: 'Organograma da rede',
-            actionLabel: 'Abrir rede',
-            onAction: () => context.go('/network?view=tree'),
-          ),
-          const SizedBox(height: AppTokens.space8),
-          const NetworkTreeOrganogram(),
-        ],
-      ),
+      child: const NetworkTreeOrganogram(),
     );
   }
 }
