@@ -60,6 +60,10 @@ void main() {
     expect(find.text('Pra. Renata Almeida'), findsOneWidget);
     expect(find.text('Regional · RMBH'), findsNothing);
     expect(find.byType(InteractiveViewer), findsOneWidget);
+    expect(
+      tester.widget<InteractiveViewer>(find.byType(InteractiveViewer)).minScale,
+      closeTo(0.35, 0.001),
+    );
     expect(find.byTooltip('Aumentar zoom'), findsOneWidget);
     expect(find.byTooltip('Diminuir zoom'), findsOneWidget);
     expect(find.byTooltip('Redefinir zoom'), findsOneWidget);

@@ -27,8 +27,36 @@ import '../domain/dashboard_models.dart';
 /// Lider: foco na rede (quem precisa de cuidado, proximos acompanhamentos, tendencias).
 /// Pastor: foco pessoal (proximo compromisso, comunicados, meu ministerio, ajuda).
 /// Todos os numeros vem da API ja filtrados pelo escopo do usuario.
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final _scrollLock = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _scrollLock.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: _scrollLock,
+    builder: (context, locked, _) => TreeScrollLockScope(
+      lock: _scrollLock,
+      child: _DashboardContent(scrollLocked: locked),
+    ),
+  );
+}
+
+class _DashboardContent extends ConsumerWidget {
+  const _DashboardContent({this.scrollLocked = false});
+
+  final bool scrollLocked;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,6 +80,7 @@ class DashboardScreen extends ConsumerWidget {
         ref.invalidate(unreadNotificationsCountProvider);
       },
       child: ListView(
+        physics: scrollLocked ? const NeverScrollableScrollPhysics() : null,
         padding: EdgeInsets.fromLTRB(
           size.pagePadding,
           size.pagePadding,

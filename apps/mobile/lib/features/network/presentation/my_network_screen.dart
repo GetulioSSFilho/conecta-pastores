@@ -459,7 +459,7 @@ class _NetworkList extends ConsumerWidget {
   }
 }
 
-class _NetworkTree extends StatelessWidget {
+class _NetworkTree extends StatefulWidget {
   const _NetworkTree({
     required this.padding,
     required this.filter,
@@ -471,6 +471,49 @@ class _NetworkTree extends StatelessWidget {
   final String search;
 
   @override
+  State<_NetworkTree> createState() => _NetworkTreeState();
+}
+
+class _NetworkTreeState extends State<_NetworkTree> {
+  final _scrollLock = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _scrollLock.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _scrollLock,
+      builder: (context, locked, _) => TreeScrollLockScope(
+        lock: _scrollLock,
+        child: _NetworkTreeContent(
+          padding: widget.padding,
+          filter: widget.filter,
+          search: widget.search,
+          scrollLocked: locked,
+        ),
+      ),
+    );
+  }
+}
+
+class _NetworkTreeContent extends StatelessWidget {
+  const _NetworkTreeContent({
+    required this.padding,
+    required this.filter,
+    required this.search,
+    required this.scrollLocked,
+  });
+
+  final double padding;
+  final _TreeFilter filter;
+  final String search;
+  final bool scrollLocked;
+
+  @override
   Widget build(BuildContext context) {
     final filterLabel = switch (filter) {
       _TreeFilter.all => null,
@@ -479,6 +522,7 @@ class _NetworkTree extends StatelessWidget {
     };
 
     return ListView(
+      physics: scrollLocked ? const NeverScrollableScrollPhysics() : null,
       padding: EdgeInsets.fromLTRB(
         padding,
         AppTokens.space16,
@@ -702,6 +746,27 @@ class NetworkTreeOrganogram extends StatelessWidget {
       const _ExpandableTreeGraph(filter: _TreeFilter.all);
 }
 
+/// Coordena o gesto do organograma com a rolagem vertical que o envolve.
+/// Enquanto um ponteiro estiver dentro do viewport, a lista pai fica travada;
+/// ao soltar, a rolagem da tela volta ao comportamento normal.
+class TreeScrollLockScope extends InheritedWidget {
+  const TreeScrollLockScope({
+    super.key,
+    required this.lock,
+    required super.child,
+  });
+
+  final ValueNotifier<bool> lock;
+
+  static ValueNotifier<bool>? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<TreeScrollLockScope>()
+      ?.lock;
+
+  @override
+  bool updateShouldNotify(TreeScrollLockScope oldWidget) =>
+      lock != oldWidget.lock;
+}
+
 /// Viewport do organograma com zoom por pinça no celular e controles para
 /// mouse, teclado e apresentação em telas maiores.
 class _ZoomableTree extends StatefulWidget {
@@ -714,10 +779,11 @@ class _ZoomableTree extends StatefulWidget {
 }
 
 class _ZoomableTreeState extends State<_ZoomableTree> {
-  static const _minScale = 0.65;
+  static const _minScale = 0.35;
   static const _maxScale = 2.5;
 
   final _controller = TransformationController();
+  var _activePointers = 0;
 
   @override
   void dispose() {
@@ -735,6 +801,18 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
     _controller.value = matrix;
   }
 
+  void _pointerDown(PointerDownEvent _) {
+    _activePointers++;
+    TreeScrollLockScope.maybeOf(context)?.value = true;
+  }
+
+  void _pointerUp(PointerEvent _) {
+    _activePointers = math.max(0, _activePointers - 1);
+    if (_activePointers == 0) {
+      TreeScrollLockScope.maybeOf(context)?.value = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -743,15 +821,21 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
         borderRadius: BorderRadius.circular(AppTokens.radius12),
         child: Stack(
           children: [
-            InteractiveViewer(
-              transformationController: _controller,
-              constrained: false,
-              minScale: _minScale,
-              maxScale: _maxScale,
-              boundaryMargin: const EdgeInsets.all(140),
-              panEnabled: true,
-              scaleEnabled: true,
-              child: widget.child,
+            Listener(
+              onPointerDown: _pointerDown,
+              onPointerUp: _pointerUp,
+              onPointerCancel: _pointerUp,
+              child: InteractiveViewer(
+                transformationController: _controller,
+                constrained: false,
+                minScale: _minScale,
+                maxScale: _maxScale,
+                boundaryMargin: const EdgeInsets.all(180),
+                panEnabled: true,
+                scaleEnabled: true,
+                clipBehavior: Clip.hardEdge,
+                child: widget.child,
+              ),
             ),
             Positioned(
               top: AppTokens.space12,
