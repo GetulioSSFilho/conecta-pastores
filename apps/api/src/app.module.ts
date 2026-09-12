@@ -73,16 +73,19 @@ import { UsersModule } from './modules/users/users.module';
         autoLogging: { ignore: (req) => req.url === '/api/health' },
       },
     }),
-    ThrottlerModule.forRoot({
-      throttlers: [
-        // Leitura autenticada: uma SPA carrega varias secoes por tela.
-        { name: 'default', ttl: 60_000, limit: 300 },
-        { name: 'auth', ttl: 300_000, limit: 10 },
-      ],
-      // Somente nos testes automatizados (jest define NODE_ENV=test). A validacao de
-      // ambiente impede NODE_ENV=test fora de APP_ENV=DEV.
-      skipIf: () => process.env.NODE_ENV === 'test',
-    }),
+    // DESENVOLVIMENTO: rate limit temporariamente desligado.
+    // Para reativar, basta descomentar este bloco e o APP_GUARD abaixo. Os
+    // decoradores @Throttle dos controllers ja permanecem preservados.
+    // ThrottlerModule.forRoot({
+    //   throttlers: [
+    //     // Leitura autenticada: uma SPA carrega varias secoes por tela.
+    //     { name: 'default', ttl: 60_000, limit: 300 },
+    //     { name: 'auth', ttl: 300_000, limit: 10 },
+    //   ],
+    //   // Somente nos testes automatizados (jest define NODE_ENV=test). A validacao de
+    //   // ambiente impede NODE_ENV=test fora de APP_ENV=DEV.
+    //   skipIf: () => process.env.NODE_ENV === 'test',
+    // }),
     ScheduleModule.forRoot(),
 
     PrismaModule,
@@ -110,7 +113,9 @@ import { UsersModule } from './modules/users/users.module';
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // DESENVOLVIMENTO: reative junto com o ThrottlerModule acima quando for
+    // necessario voltar a aplicar os limites globais e por rota.
+    // { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
   ],

@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/searchable_select.dart';
 import '../../pastors/data/pastor_form_providers.dart';
 import '../data/church_form_providers.dart';
 import '../domain/church_models.dart';
@@ -90,7 +91,9 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
           phone: _phone.text,
           email: _email.text,
           latitude: double.tryParse(_latitude.text.trim().replaceAll(',', '.')),
-          longitude: double.tryParse(_longitude.text.trim().replaceAll(',', '.')),
+          longitude: double.tryParse(
+            _longitude.text.trim().replaceAll(',', '.'),
+          ),
           foundedAt: _foundedAt,
           membersEstimate: int.tryParse(_members.text.trim()),
         ),
@@ -111,28 +114,37 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
   Widget build(BuildContext context) {
     final padding = context.windowSize.pagePadding;
     final countries = ref.watch(pastorCountryOptionsProvider).value ?? const [];
-    final regions = ref.watch(regionOptionsProvider(_countryId)).value ?? const [];
-    final parents = ref.watch(parentChurchOptionsProvider(_countryId)).value ?? const [];
+    final regions =
+        ref.watch(regionOptionsProvider(_countryId)).value ?? const [];
+    final parents =
+        ref.watch(parentChurchOptionsProvider(_countryId)).value ?? const [];
 
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 760),
         child: ListView(
-          padding: EdgeInsets.fromLTRB(padding, padding, padding, AppTokens.space32),
+          padding: EdgeInsets.fromLTRB(
+            padding,
+            padding,
+            padding,
+            AppTokens.space32,
+          ),
           children: [
             Row(
               children: [
                 IconButton(
                   tooltip: 'Voltar',
-                  onPressed: () => context.canPop() ? context.pop() : context.go('/churches'),
+                  onPressed: () => context.canPop()
+                      ? context.pop()
+                      : context.go('/churches'),
                   icon: const Icon(Icons.arrow_back_rounded),
                 ),
                 const SizedBox(width: AppTokens.space8),
                 Text(
                   'Cadastrar igreja',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -148,7 +160,9 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                         padding: const EdgeInsets.all(AppTokens.space12),
                         decoration: BoxDecoration(
                           color: AppColors.alert.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(AppTokens.radius12),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radius12,
+                          ),
                         ),
                         child: Text(_error!),
                       ),
@@ -159,9 +173,12 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                       first: TextFormField(
                         controller: _name,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(labelText: 'Nome da igreja'),
-                        validator: (v) =>
-                            (v ?? '').trim().length < 2 ? 'Informe o nome.' : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome da igreja',
+                        ),
+                        validator: (v) => (v ?? '').trim().length < 2
+                            ? 'Informe o nome.'
+                            : null,
                       ),
                       second: TextFormField(
                         controller: _code,
@@ -170,12 +187,16 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                           labelText: 'Código',
                           hintText: 'Ex.: BR-031',
                         ),
-                        validator: (v) =>
-                            (v ?? '').trim().length < 2 ? 'Informe o código.' : null,
+                        validator: (v) => (v ?? '').trim().length < 2
+                            ? 'Informe o código.'
+                            : null,
                       ),
                     ),
                     const SizedBox(height: AppTokens.space16),
-                    const Text('Tipo', style: TextStyle(color: AppColors.mutedInk, fontSize: 12)),
+                    const Text(
+                      'Tipo',
+                      style: TextStyle(color: AppColors.mutedInk, fontSize: 12),
+                    ),
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: AppTokens.space8,
@@ -210,31 +231,40 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                     ),
                     const Divider(height: AppTokens.space32),
                     const _Title('Onde fica'),
-                    DropdownButtonFormField<String>(
+                    SearchableSelectFormField<String>(
                       initialValue: _countryId,
                       decoration: const InputDecoration(labelText: 'País'),
                       items: [
                         for (final country in countries)
-                          DropdownMenuItem(value: country.id, child: Text(country.label)),
+                          DropdownMenuItem(
+                            value: country.id,
+                            child: Text(country.label),
+                          ),
                       ],
                       onChanged: (value) => setState(() {
                         _countryId = value;
                         _regionId = null;
                         _parentId = null;
                       }),
-                      validator: (value) => value == null ? 'Escolha o país.' : null,
+                      validator: (value) =>
+                          value == null ? 'Escolha o país.' : null,
                     ),
                     const SizedBox(height: AppTokens.space16),
                     _TwoColumns(
-                      first: DropdownButtonFormField<String>(
+                      first: SearchableSelectFormField<String>(
                         initialValue: _regionId,
                         decoration: InputDecoration(
                           labelText: 'Região',
-                          helperText: _countryId == null ? 'Escolha o país primeiro' : null,
+                          helperText: _countryId == null
+                              ? 'Escolha o país primeiro'
+                              : null,
                         ),
                         items: [
                           for (final region in regions)
-                            DropdownMenuItem(value: region.id, child: Text(region.label)),
+                            DropdownMenuItem(
+                              value: region.id,
+                              child: Text(region.label),
+                            ),
                         ],
                         onChanged: regions.isEmpty
                             ? null
@@ -244,19 +274,24 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                         controller: _city,
                         textCapitalization: TextCapitalization.words,
                         decoration: const InputDecoration(labelText: 'Cidade'),
-                        validator: (v) =>
-                            (v ?? '').trim().length < 2 ? 'Informe a cidade.' : null,
+                        validator: (v) => (v ?? '').trim().length < 2
+                            ? 'Informe a cidade.'
+                            : null,
                       ),
                     ),
                     const SizedBox(height: AppTokens.space16),
                     _TwoColumns(
                       first: TextFormField(
                         controller: _address,
-                        decoration: const InputDecoration(labelText: 'Endereço'),
+                        decoration: const InputDecoration(
+                          labelText: 'Endereço',
+                        ),
                       ),
                       second: TextFormField(
                         controller: _postalCode,
-                        decoration: const InputDecoration(labelText: 'CEP / código postal'),
+                        decoration: const InputDecoration(
+                          labelText: 'CEP / código postal',
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppTokens.space16),
@@ -278,22 +313,28 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                           decimal: true,
                           signed: true,
                         ),
-                        decoration: const InputDecoration(labelText: 'Longitude'),
+                        decoration: const InputDecoration(
+                          labelText: 'Longitude',
+                        ),
                       ),
                     ),
                     if (_type != ChurchType.main) ...[
                       const SizedBox(height: AppTokens.space16),
-                      DropdownButtonFormField<String>(
+                      SearchableSelectFormField<String>(
                         initialValue: _parentId,
                         decoration: const InputDecoration(
                           labelText: 'Igreja sede',
-                          helperText: 'A qual sede este campus/congregação pertence',
+                          helperText:
+                              'A qual sede este campus/congregação pertence',
                         ),
                         items: [
                           for (final parent in parents)
                             DropdownMenuItem(
                               value: parent.id,
-                              child: Text(parent.label, overflow: TextOverflow.ellipsis),
+                              child: Text(
+                                parent.label,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                         ],
                         onChanged: parents.isEmpty
@@ -338,7 +379,9 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                             firstDate: DateTime(1800),
                             lastDate: DateTime.now(),
                           );
-                          if (picked != null) setState(() => _foundedAt = picked);
+                          if (picked != null) {
+                            setState(() => _foundedAt = picked);
+                          }
                         },
                         child: InputDecorator(
                           decoration: const InputDecoration(
@@ -350,7 +393,9 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                                 ? 'Não informada'
                                 : Formatters.date(_foundedAt!),
                             style: TextStyle(
-                              color: _foundedAt == null ? AppColors.mutedInk : AppColors.ink,
+                              color: _foundedAt == null
+                                  ? AppColors.mutedInk
+                                  : AppColors.ink,
                             ),
                           ),
                         ),
@@ -358,7 +403,9 @@ class _ChurchFormScreenState extends ConsumerState<ChurchFormScreen> {
                       second: TextFormField(
                         controller: _members,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Membros estimados'),
+                        decoration: const InputDecoration(
+                          labelText: 'Membros estimados',
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppTokens.space24),
@@ -403,7 +450,11 @@ class _TwoColumns extends StatelessWidget {
         if (constraints.maxWidth < 520) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [first, const SizedBox(height: AppTokens.space16), second],
+            children: [
+              first,
+              const SizedBox(height: AppTokens.space16),
+              second,
+            ],
           );
         }
         return Row(

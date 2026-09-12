@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../../../core/widgets/paged_list_view.dart';
+import '../../../core/widgets/searchable_select.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../churches/data/church_options_provider.dart';
 import '../data/pastor_directory_providers.dart';
@@ -308,27 +309,15 @@ class _FilterMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      tooltip: label,
-      position: PopupMenuPosition.under,
-      onSelected: onSelected,
-      itemBuilder: (_) => [
-        for (final o in options)
-          PopupMenuItem(value: o.id, child: Text(o.label)),
+    return SearchableFilterButton<String>(
+      icon: icon,
+      label: label,
+      active: active,
+      options: [
+        for (final option in options)
+          SearchableMenuOption(value: option.id, label: option.label),
       ],
-      child: Chip(
-        avatar: Icon(
-          icon,
-          size: 18,
-          color: active ? Colors.white : AppColors.primary,
-        ),
-        label: Text(
-          label,
-          style: TextStyle(color: active ? Colors.white : AppColors.ink),
-        ),
-        backgroundColor: active ? AppColors.primary : AppColors.surface,
-        side: BorderSide(color: active ? AppColors.primary : AppColors.border),
-      ),
+      onSelected: onSelected,
     );
   }
 }

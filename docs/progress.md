@@ -70,7 +70,7 @@ Correções e melhorias de backend nesta fase:
       no celular, rail no tablet, sidebar com rótulos no desktop.
 - [x] Acessibilidade da navegação coberta por teste de widget (destinos são botões
       acionáveis com rótulo, no desktop e no celular).
-- [x] Telas com dados reais: Início (pastor e líder), Minha Rede (lista + árvore),
+- [x] Telas com dados reais: Início (pastor e líder), Minha Rede (lista; árvore visual de exemplo),
       Diretório de Pastores, Perfil 360 (11 abas), Canal (feed + publicação, com
       leitura e confirmação de ciência), Notificações, Agenda (mês/dia/próximos e
       novo compromisso), Solicitações (lista, detalhe com histórico, nova,
@@ -137,8 +137,9 @@ Correções e melhorias de backend nesta fase:
 
 ## Pendências conhecidas
 
-1. Não há mais tela mockada: o pacote de dados fictícios (`core/mock`), a tela
-   de perfil de demonstração e os widgets que só ela usava foram removidos.
+1. A árvore da Minha Rede é uma composição visual de exemplo com dados locais;
+   a lista da rede continua ligada à API. O pacote de dados fictícios (`core/mock`),
+   a tela de perfil de demonstração e os widgets que só ela usava foram removidos.
 2. Upload de documento pelo app (falta seletor de arquivo) — a API já aceita.
 3. Internacionalização: infraestrutura pronta (pt-BR/en/es), textos ainda embutidos.
 4. Push/FCM e check-in por QR Code.

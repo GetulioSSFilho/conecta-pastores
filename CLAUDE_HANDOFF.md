@@ -33,7 +33,7 @@ Usuários de teste (senha `Pastoral@2025`), todos `@pastoral.dev`:
   sessões ativas com revogação, troca e redefinição de senha.
 - Navegação por URL (go_router): F5, botão voltar e links diretos funcionam;
   rota protegida manda para o login preservando o destino.
-- Início (pastor e líder), Minha Rede (lista + árvore), Diretório de Pastores,
+- Início (pastor e líder), Minha Rede (lista real + árvore visual de exemplo), Diretório de Pastores,
   Perfil 360 (11 abas), Canal (feed + publicação, leitura e confirmação),
   Notificações, Agenda (mês/dia/próximos + novo compromisso), Solicitações
   (lista, detalhe com histórico, nova, assumir, mudar situação),
@@ -47,10 +47,12 @@ Usuários de teste (senha `Pastoral@2025`), todos `@pastoral.dev`:
 
 ## O que ainda é mock
 
-Nada. O pacote `core/mock`, a tela de perfil de demonstração e os widgets que só
-ela usava foram removidos — toda tela navegável consome a API. Ao criar tela
-nova, siga o padrão: `domain/` (modelos) + `data/` (providers) + `presentation/`,
-rota no `app_router.dart`, depois `flutter analyze`, `flutter test` e build.
+O modo **Árvore** de Minha Rede usa dados locais de exemplo para reproduzir a
+composição visual aprovada; a lista continua consumindo a API. O pacote
+`core/mock`, a tela de perfil de demonstração e os widgets que só ela usava
+foram removidos. Ao criar tela nova, siga o padrão: `domain/` (modelos) +
+`data/` (providers) + `presentation/`, rota no `app_router.dart`, depois
+`flutter analyze`, `flutter test` e build.
 
 ## O que falta (próximos passos)
 
@@ -78,7 +80,8 @@ Primeiro commit do repositório: `11bd5d0`.
    jamais "pastor em risco".
 3. **Confidencialidade do cuidado** (NORMAL/RESTRITO/CONFIDENCIAL) é decidida na
    API e auditada na leitura.
-4. Nada de dado mockado em tela nova: se falta endpoint, cria-se o endpoint.
+4. Nada de dado mockado em tela nova por padrão; exceção: composições visuais de
+   exemplo explicitamente aprovadas, como o modo Árvore atual.
 5. Toda mudança termina com `flutter analyze`, `flutter test` e, quando mexe em
    API, `npm run test:e2e`.
 

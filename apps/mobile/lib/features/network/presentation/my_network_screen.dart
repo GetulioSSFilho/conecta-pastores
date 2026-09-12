@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,16 +9,16 @@ import '../../../core/responsive/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../../../core/widgets/paged_list_view.dart';
-import '../../../core/widgets/person_avatar.dart';
+import '../../../core/widgets/searchable_select.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../churches/data/church_options_provider.dart';
 import '../../pastors/domain/pastor_status.dart';
 import '../../pastors/presentation/widgets/pastor_list_tile.dart';
 import '../data/network_providers.dart';
-import '../domain/network_node.dart';
+
+enum _TreeFilter { all, overdue, thisWeek }
 
 /// Minha Rede: todos os pastores sob responsabilidade do usuario.
 ///
@@ -34,6 +35,8 @@ class _MyNetworkScreenState extends ConsumerState<MyNetworkScreen> {
   Timer? _debounce;
   var _treeView = false;
   var _ready = false;
+  var _treeFilter = _TreeFilter.all;
+  var _treeSearch = '';
 
   @override
   void initState() {
@@ -65,6 +68,9 @@ class _MyNetworkScreenState extends ConsumerState<MyNetworkScreen> {
     });
   }
 
+  void _onTreeSearch(String value) =>
+      setState(() => _treeSearch = value.trim().toLowerCase());
+
   @override
   Widget build(BuildContext context) {
     final size = context.windowSize;
@@ -93,11 +99,32 @@ class _MyNetworkScreenState extends ConsumerState<MyNetworkScreen> {
                 ),
                 child: _Filters(search: _search, onSearch: _onSearch),
               ),
+            if (_treeView)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  padding,
+                  AppTokens.space16,
+                  padding,
+                  0,
+                ),
+                child: _TreeFilters(
+                  search: _search,
+                  value: _treeSearch,
+                  filter: _treeFilter,
+                  onSearch: _onTreeSearch,
+                  onFilterChanged: (filter) =>
+                      setState(() => _treeFilter = filter),
+                ),
+              ),
             Expanded(
               child: !_ready
                   ? const SizedBox.shrink()
                   : _treeView
-                  ? _NetworkTree(padding: padding)
+                  ? _NetworkTree(
+                      padding: padding,
+                      filter: _treeFilter,
+                      search: _treeSearch,
+                    )
                   : _NetworkList(padding: padding),
             ),
           ],
@@ -132,6 +159,8 @@ class _Header extends ConsumerWidget {
               Text(
                 summary == null
                     ? 'Pastores sob sua responsabilidade'
+                    : treeView
+                    ? Formatters.count(summary.total, 'pastor', 'pastores')
                     : [
                         Formatters.count(summary.total, 'pastor', 'pastores'),
                         Formatters.count(summary.direct, 'direto', 'diretos'),
@@ -297,27 +326,79 @@ class _MenuChip<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<int>(
-      tooltip: label,
-      position: PopupMenuPosition.under,
-      onSelected: (i) => onSelected(options[i].$1),
-      itemBuilder: (_) => [
-        for (var i = 0; i < options.length; i++)
-          PopupMenuItem(value: i, child: Text(options[i].$2)),
+    return SearchableFilterButton<T>(
+      icon: icon,
+      label: label,
+      active: active,
+      options: [
+        for (final option in options)
+          SearchableMenuOption(value: option.$1, label: option.$2),
       ],
-      child: Chip(
-        avatar: Icon(
-          icon,
-          size: 18,
-          color: active ? Colors.white : AppColors.primary,
+      onSelected: onSelected,
+    );
+  }
+}
+
+class _TreeFilters extends StatelessWidget {
+  const _TreeFilters({
+    required this.search,
+    required this.value,
+    required this.filter,
+    required this.onSearch,
+    required this.onFilterChanged,
+  });
+
+  final TextEditingController search;
+  final String value;
+  final _TreeFilter filter;
+  final ValueChanged<String> onSearch;
+  final ValueChanged<_TreeFilter> onFilterChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: search,
+          onChanged: onSearch,
+          textInputAction: TextInputAction.search,
+          decoration: InputDecoration(
+            hintText: 'Buscar pastor...',
+            prefixIcon: const Icon(Icons.search_rounded),
+            suffixIcon: value.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Limpar busca',
+                    onPressed: () {
+                      search.clear();
+                      onSearch('');
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+          ),
         ),
-        label: Text(
-          label,
-          style: TextStyle(color: active ? Colors.white : AppColors.ink),
+        const SizedBox(height: AppTokens.space12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final (item, label) in [
+                (_TreeFilter.all, 'Todos'),
+                (_TreeFilter.overdue, '> 30 dias'),
+                (_TreeFilter.thisWeek, 'Esta semana'),
+              ]) ...[
+                ChoiceChip(
+                  label: Text(label),
+                  selected: filter == item,
+                  onSelected: (_) => onFilterChanged(item),
+                ),
+                const SizedBox(width: AppTokens.space8),
+              ],
+            ],
+          ),
         ),
-        backgroundColor: active ? AppColors.primary : AppColors.surface,
-        side: BorderSide(color: active ? AppColors.primary : AppColors.border),
-      ),
+      ],
     );
   }
 }
@@ -377,13 +458,25 @@ class _NetworkList extends ConsumerWidget {
   }
 }
 
-class _NetworkTree extends ConsumerWidget {
-  const _NetworkTree({required this.padding});
+class _NetworkTree extends StatelessWidget {
+  const _NetworkTree({
+    required this.padding,
+    required this.filter,
+    required this.search,
+  });
 
   final double padding;
+  final _TreeFilter filter;
+  final String search;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final filterLabel = switch (filter) {
+      _TreeFilter.all => null,
+      _TreeFilter.overdue => 'Mais de 30 dias',
+      _TreeFilter.thisWeek => 'Esta semana',
+    };
+
     return ListView(
       padding: EdgeInsets.fromLTRB(
         padding,
@@ -392,129 +485,423 @@ class _NetworkTree extends ConsumerWidget {
         AppTokens.space32,
       ),
       children: [
-        AsyncValueView(
-          value: ref.watch(networkTreeProvider),
-          onRetry: () => ref.invalidate(networkTreeProvider),
-          data: (root) => root == null || root.children.isEmpty
-              ? const InlineEmpty(
-                  icon: Icons.account_tree_outlined,
-                  message:
-                      'Ainda não há pastores abaixo de você na hierarquia.',
-                )
-              : AppCard(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AppTokens.space8,
-                  ),
-                  child: _TreeNode(node: root, initiallyExpanded: true),
-                ),
-        ),
+        if (filterLabel != null || search.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppTokens.space12),
+            child: Text(
+              [
+                if (filterLabel != null) 'Filtro: $filterLabel',
+                if (search.isNotEmpty) 'Busca: $search',
+              ].join(' · '),
+              style: const TextStyle(color: AppColors.mutedInk, fontSize: 12),
+            ),
+          ),
+        _TreeGraph(filter: filter),
+        const SizedBox(height: AppTokens.space16),
+        const _TreeLegend(),
       ],
     );
   }
 }
 
-class _TreeNode extends StatefulWidget {
-  const _TreeNode({required this.node, this.initiallyExpanded = false});
+/// Organograma visual da referência. É deliberadamente um exemplo local:
+/// permite validar a composição antes de decidir o contrato persistido da
+/// árvore real.
+class _TreeGraph extends StatelessWidget {
+  const _TreeGraph({required this.filter});
 
-  final NetworkNode node;
-  final bool initiallyExpanded;
-
-  @override
-  State<_TreeNode> createState() => _TreeNodeState();
-}
-
-class _TreeNodeState extends State<_TreeNode> {
-  late var _expanded = widget.initiallyExpanded;
+  final _TreeFilter filter;
 
   @override
   Widget build(BuildContext context) {
-    final node = widget.node;
-    final days = node.daysSinceLastCare;
-    final isRoot = node.depth == 0;
-    final careColor = node.lastCareAt == null || (days ?? 0) > 30
-        ? AppColors.alert
-        : AppColors.mutedInk;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const branchWidth = 156.0;
+        const leafWidth = 150.0;
+        const branchGap = 28.0;
+        const leafGap = 16.0;
+        final groupWidth = leafWidth * 2 + leafGap;
+        final minimumWidth = groupWidth * 2 + branchGap;
+        final width = math.max(constraints.maxWidth, minimumWidth);
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: width,
+            height: 540,
+            child: LayoutBuilder(
+              builder: (context, graphConstraints) {
+                const rootWidth = 176.0;
+                const rootHeight = 128.0;
+                const branchHeight = 118.0;
+                const leafHeight = 132.0;
+                const rootTop = 8.0;
+                const branchTop = 184.0;
+                const leafTop = 362.0;
+                final leftGroup =
+                    (graphConstraints.maxWidth - minimumWidth) / 2;
+                final rightGroup = leftGroup + groupWidth + branchGap;
+                final leftBranch = leftGroup + (groupWidth - branchWidth) / 2;
+                final rightBranch = rightGroup + (groupWidth - branchWidth) / 2;
+                final center = graphConstraints.maxWidth / 2;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        InkWell(
-          onTap: isRoot ? null : () => context.go('/pastors/${node.id}'),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(8.0 + 24.0 * node.depth, 6, 12, 6),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 32,
-                  child: node.children.isEmpty
-                      ? const SizedBox.shrink()
-                      : IconButton(
-                          visualDensity: VisualDensity.compact,
-                          tooltip: _expanded ? 'Recolher' : 'Expandir',
-                          onPressed: () =>
-                              setState(() => _expanded = !_expanded),
-                          icon: Icon(
-                            _expanded
-                                ? Icons.expand_more_rounded
-                                : Icons.chevron_right_rounded,
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: CustomPaint(
+                        painter: _TreeConnectorPainter(
+                          rootBottomCenter: Offset(
+                            center,
+                            rootTop + rootHeight,
                           ),
-                        ),
-                ),
-                PersonAvatar(
-                  name: node.pastoralName,
-                  photoUrl: node.photoUrl,
-                  size: isRoot ? 40 : 34,
-                ),
-                const SizedBox(width: AppTokens.space12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isRoot
-                            ? '${node.pastoralName} (você)'
-                            : node.pastoralName,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        [
-                          if (node.churchName != null) node.churchName!,
-                          if (node.children.isNotEmpty)
-                            Formatters.count(
-                              node.descendantCount,
-                              'pessoa na rede',
-                              'pessoas na rede',
+                          branchY: 160,
+                          branchTopCenters: [
+                            Offset(leftBranch + branchWidth / 2, branchTop),
+                            Offset(rightBranch + branchWidth / 2, branchTop),
+                          ],
+                          branchBottomCenters: [
+                            Offset(
+                              leftBranch + branchWidth / 2,
+                              branchTop + branchHeight,
                             ),
-                        ].join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.mutedInk,
-                          fontSize: 12,
+                            Offset(
+                              rightBranch + branchWidth / 2,
+                              branchTop + branchHeight,
+                            ),
+                          ],
+                          leafTopCenters: [
+                            [
+                              Offset(leftGroup + leafWidth / 2, leafTop),
+                              Offset(
+                                leftGroup + leafWidth + leafGap + leafWidth / 2,
+                                leafTop,
+                              ),
+                            ],
+                            [
+                              Offset(rightGroup + leafWidth / 2, leafTop),
+                              Offset(
+                                rightGroup +
+                                    leafWidth +
+                                    leafGap +
+                                    leafWidth / 2,
+                                leafTop,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                if (!isRoot)
-                  Text(
-                    Formatters.careSince(
-                      days: days,
-                      neverCared: node.lastCareAt == null,
                     ),
-                    style: TextStyle(
-                      color: careColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                    Positioned(
+                      left: center - rootWidth / 2,
+                      top: rootTop,
+                      child: const _TreePersonCard(
+                        width: rootWidth,
+                        height: rootHeight,
+                        name: 'Pr. Carlos Mendes',
+                        detail: 'Líder regional · MG',
+                        detailColor: AppColors.primary,
+                        image: 'assets/images/pastor_carlos.png',
+                        emphasized: true,
+                      ),
                     ),
-                  ),
-              ],
+                    Positioned(
+                      left: leftBranch,
+                      top: branchTop,
+                      child: const _TreePersonCard(
+                        width: branchWidth,
+                        height: branchHeight,
+                        name: 'Pr. Paulo Ribeiro',
+                        detail: 'Supervisor · RMBH',
+                        detailColor: AppColors.primary,
+                        image: 'assets/images/pastor_joao.png',
+                      ),
+                    ),
+                    Positioned(
+                      left: rightBranch,
+                      top: branchTop,
+                      child: const _TreePersonCard(
+                        width: branchWidth,
+                        height: branchHeight,
+                        name: 'Pra. Renata Almeida',
+                        detail: 'Supervisora · RMBH',
+                        detailColor: AppColors.primary,
+                        image: 'assets/images/pastora_ana.png',
+                      ),
+                    ),
+                    Positioned(
+                      left: leftGroup,
+                      top: leafTop,
+                      child: _TreePersonCard(
+                        width: leafWidth,
+                        height: leafHeight,
+                        name: 'Pr. João Silva',
+                        detail: filter == _TreeFilter.thisWeek
+                            ? 'Próximo: 18/09'
+                            : 'Último cuidado: 8 dias',
+                        detailColor: AppColors.success,
+                        image: 'assets/images/pastor_joao.png',
+                      ),
+                    ),
+                    Positioned(
+                      left: leftGroup + leafWidth + leafGap,
+                      top: leafTop,
+                      child: _TreePersonCard(
+                        width: leafWidth,
+                        height: leafHeight,
+                        name: 'Pra. Ana Souza',
+                        detail: filter == _TreeFilter.thisWeek
+                            ? 'Próximo: 20/09'
+                            : 'Último cuidado: 12 dias',
+                        detailColor: AppColors.success,
+                        image: 'assets/images/pastora_ana.png',
+                      ),
+                    ),
+                    Positioned(
+                      left: rightGroup,
+                      top: leafTop,
+                      child: _TreePersonCard(
+                        width: leafWidth,
+                        height: leafHeight,
+                        name: 'Pr. Marcos Lima',
+                        detail: 'Último cuidado: 54 dias',
+                        detailColor: AppColors.accent,
+                        image: 'assets/images/pastor_marcos.png',
+                        warning: true,
+                      ),
+                    ),
+                    Positioned(
+                      left: rightGroup + leafWidth + leafGap,
+                      top: leafTop,
+                      child: const _TreePersonCard(
+                        width: leafWidth,
+                        height: leafHeight,
+                        name: 'Pr. Eduardo Costa',
+                        detail: 'Próximo cuidado: 18/09',
+                        detailColor: AppColors.primary,
+                        initials: 'EC',
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
+        );
+      },
+    );
+  }
+}
+
+class _TreeConnectorPainter extends CustomPainter {
+  const _TreeConnectorPainter({
+    required this.rootBottomCenter,
+    required this.branchY,
+    required this.branchTopCenters,
+    required this.branchBottomCenters,
+    required this.leafTopCenters,
+  });
+
+  final Offset rootBottomCenter;
+  final double branchY;
+  final List<Offset> branchTopCenters;
+  final List<Offset> branchBottomCenters;
+  final List<List<Offset>> leafTopCenters;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.primary.withValues(alpha: 0.55)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(
+      rootBottomCenter,
+      Offset(rootBottomCenter.dx, branchY),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(branchTopCenters.first.dx, branchY),
+      Offset(branchTopCenters.last.dx, branchY),
+      paint,
+    );
+    for (var i = 0; i < branchTopCenters.length; i++) {
+      final branchTop = branchTopCenters[i];
+      final branchBottom = branchBottomCenters[i];
+      canvas.drawLine(Offset(branchTop.dx, branchY), branchTop, paint);
+
+      final leaves = leafTopCenters[i];
+      final leafBranchY = branchBottom.dy + 28;
+      canvas.drawLine(
+        branchBottom,
+        Offset(branchBottom.dx, leafBranchY),
+        paint,
+      );
+      canvas.drawLine(
+        Offset(leaves.first.dx, leafBranchY),
+        Offset(leaves.last.dx, leafBranchY),
+        paint,
+      );
+      for (final leaf in leaves) {
+        canvas.drawLine(Offset(leaf.dx, leafBranchY), leaf, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TreeConnectorPainter oldDelegate) => false;
+}
+
+String _initials(String name) {
+  final words = name
+      .replaceAll(RegExp(r'^(Pr\.|Pra\.|Pastor|Pastora)\s+'), '')
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .toList();
+  if (words.length < 2) {
+    return name.substring(0, math.min(2, name.length)).toUpperCase();
+  }
+  return '${words.first[0]}${words.last[0]}'.toUpperCase();
+}
+
+class _TreePersonCard extends StatelessWidget {
+  const _TreePersonCard({
+    required this.width,
+    required this.height,
+    required this.name,
+    required this.detail,
+    required this.detailColor,
+    this.image,
+    this.initials,
+    this.emphasized = false,
+    this.warning = false,
+  });
+
+  final double width;
+  final double height;
+  final String name;
+  final String detail;
+  final Color detailColor;
+  final String? image;
+  final String? initials;
+  final bool emphasized;
+  final bool warning;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      elevation: 2,
+      shadowColor: AppColors.primary.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(AppTokens.radius16),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Padding(
+          padding: const EdgeInsets.all(AppTokens.space12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CircleAvatar(
+                    radius: emphasized ? 28 : 24,
+                    backgroundColor: AppColors.softPrimary,
+                    foregroundImage: image == null ? null : AssetImage(image!),
+                    child: image == null
+                        ? Text(
+                            initials ?? _initials(name),
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          )
+                        : null,
+                  ),
+                  if (warning)
+                    const Positioned(
+                      right: -5,
+                      bottom: -2,
+                      child: CircleAvatar(
+                        radius: 10,
+                        backgroundColor: AppColors.accent,
+                        child: Icon(
+                          Icons.priority_high_rounded,
+                          color: Colors.white,
+                          size: 13,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppTokens.space8),
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.ink,
+                  fontWeight: emphasized ? FontWeight.w800 : FontWeight.w700,
+                  fontSize: emphasized ? 14 : 13,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                detail,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: detailColor,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
-        if (_expanded)
-          for (final child in node.children)
-            _TreeNode(node: child, initiallyExpanded: child.depth < 1),
+      ),
+    );
+  }
+}
+
+class _TreeLegend extends StatelessWidget {
+  const _TreeLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: AppTokens.space16,
+      runSpacing: AppTokens.space8,
+      children: const [
+        _LegendItem(color: AppColors.success, label: 'Acompanhamento recente'),
+        _LegendItem(color: AppColors.accent, label: 'Mais de 30 dias'),
+      ],
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.mutedInk, fontSize: 11),
+        ),
       ],
     );
   }

@@ -23,10 +23,9 @@ import '../domain/pastor_profile_models.dart';
 
 /// Aba do Perfil 360, visivel conforme permissao (a API continua decidindo o acesso).
 class _ProfileTab {
-  const _ProfileTab(this.label, this.icon, this.builder);
+  const _ProfileTab(this.label, this.builder);
 
   final String label;
-  final IconData icon;
   final Widget Function(String pastorId) builder;
 }
 
@@ -36,71 +35,65 @@ class PastorProfileScreen extends ConsumerWidget {
 
   final String pastorId;
 
+  /// Tres abas, como no desenho: Resumo, Ministerio e Acompanhamentos.
+  ///
+  /// Cada aba reune as secoes que antes eram abas separadas. A consulta
+  /// continua por secao: uma secao lenta ou negada (403) nao derruba a aba,
+  /// e o que aparece depende do que a API autoriza.
   List<_ProfileTab> _tabsFor(AuthUser user) => [
     _ProfileTab(
       'Resumo',
-      Icons.person_outline_rounded,
-      (id) => _SummaryTab(pastorId: id),
+      (id) => _TabBody(
+        children: [
+          _SummaryTab(pastorId: id),
+          if (user.can('network.read')) ...[
+            const _GroupHeading('Liderança'),
+            _LeadershipTab(pastorId: id),
+          ],
+        ],
+      ),
     ),
     _ProfileTab(
       'Ministério',
-      Icons.church_outlined,
-      (id) => _MinistryTab(pastorId: id),
+      (id) => _TabBody(
+        children: [
+          _MinistryTab(pastorId: id),
+          if (user.can('network.read')) ...[
+            const _GroupHeading('Rede sob supervisão'),
+            _NetworkTab(pastorId: id),
+          ],
+          if (user.can('training.read')) ...[
+            const _GroupHeading('Formação'),
+            _TrainingTab(pastorId: id),
+          ],
+          if (user.can('document.read')) ...[
+            const _GroupHeading('Documentos'),
+            _DocumentsTab(pastorId: id),
+          ],
+          if (user.can('credential.read')) ...[
+            const _GroupHeading('Credenciais'),
+            _CredentialsTab(pastorId: id),
+          ],
+        ],
+      ),
     ),
-    if (user.can('network.read'))
-      _ProfileTab(
-        'Liderança',
-        Icons.supervisor_account_outlined,
-        (id) => _LeadershipTab(pastorId: id),
+    _ProfileTab(
+      'Acompanhamentos',
+      (id) => _TabBody(
+        children: [
+          if (user.can('care.read')) _CareTab(pastorId: id),
+          if (user.can('request.read')) ...[
+            const _GroupHeading('Solicitações'),
+            _RequestsTab(pastorId: id),
+          ],
+          if (user.can('event.read')) ...[
+            const _GroupHeading('Agenda'),
+            _EventsTab(pastorId: id),
+          ],
+          if (user.can('audit.read')) _HistoryTab(pastorId: id),
+        ],
       ),
-    if (user.can('network.read'))
-      _ProfileTab(
-        'Rede',
-        Icons.account_tree_outlined,
-        (id) => _NetworkTab(pastorId: id),
-      ),
-    if (user.can('care.read'))
-      _ProfileTab(
-        'Acompanhamentos',
-        Icons.volunteer_activism_outlined,
-        (id) => _CareTab(pastorId: id),
-      ),
-    if (user.can('event.read'))
-      _ProfileTab(
-        'Agenda',
-        Icons.calendar_month_outlined,
-        (id) => _EventsTab(pastorId: id),
-      ),
-    if (user.can('training.read'))
-      _ProfileTab(
-        'Formação',
-        Icons.school_outlined,
-        (id) => _TrainingTab(pastorId: id),
-      ),
-    if (user.can('document.read'))
-      _ProfileTab(
-        'Documentos',
-        Icons.folder_outlined,
-        (id) => _DocumentsTab(pastorId: id),
-      ),
-    if (user.can('credential.read'))
-      _ProfileTab(
-        'Credenciais',
-        Icons.badge_outlined,
-        (id) => _CredentialsTab(pastorId: id),
-      ),
-    if (user.can('request.read'))
-      _ProfileTab(
-        'Solicitações',
-        Icons.support_agent_outlined,
-        (id) => _RequestsTab(pastorId: id),
-      ),
-    if (user.can('audit.read'))
-      _ProfileTab(
-        'Histórico',
-        Icons.history_rounded,
-        (id) => _HistoryTab(pastorId: id),
-      ),
+    ),
   ];
 
   @override
@@ -134,20 +127,13 @@ class PastorProfileScreen extends ConsumerWidget {
           SliverPersistentHeader(
             pinned: true,
             delegate: _TabBarDelegate(
+              // Tres abas cabem sem rolagem lateral, inclusive no celular.
               TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
                 labelColor: AppColors.primary,
                 unselectedLabelColor: AppColors.mutedInk,
                 indicatorColor: AppColors.primary,
-                tabs: [
-                  for (final t in tabs)
-                    Tab(
-                      icon: Icon(t.icon, size: 18),
-                      text: t.label,
-                      iconMargin: const EdgeInsets.only(bottom: 2),
-                    ),
-                ],
+                labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+                tabs: [for (final t in tabs) Tab(text: t.label)],
               ),
             ),
           ),
@@ -164,9 +150,9 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
 
   @override
-  double get minExtent => tabBar.preferredSize.height + 1;
+  double get minExtent => tabBar.preferredSize.height;
   @override
-  double get maxExtent => tabBar.preferredSize.height + 1;
+  double get maxExtent => tabBar.preferredSize.height;
 
   @override
   Widget build(
@@ -208,18 +194,44 @@ class _ProfileHeader extends StatelessWidget {
           ? CrossAxisAlignment.start
           : CrossAxisAlignment.center,
       children: [
-        Text(
-          summary.pastoralName,
-          textAlign: wide ? TextAlign.start : TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-          ),
+        Row(
+          mainAxisAlignment: wide
+              ? MainAxisAlignment.start
+              : MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                summary.pastoralName,
+                textAlign: wide ? TextAlign.start : TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            // Selo do desenho: marca apenas quem esta com cadastro ativo.
+            if (status == PastorStatus.active) ...[
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.verified_rounded,
+                color: AppColors.secondary,
+                size: 20,
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 4),
         if (summary.location.isNotEmpty)
           Text(summary.location, style: const TextStyle(color: Colors.white70)),
+        if (summary.ministryTitle != null || summary.ministryRoleName != null)
+          Text(
+            summary.ministryTitle ?? summary.ministryRoleName!,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         const SizedBox(height: AppTokens.space8),
         Wrap(
           spacing: AppTokens.space8,
@@ -246,32 +258,42 @@ class _ProfileHeader extends StatelessWidget {
     );
 
     final actions = Wrap(
-      spacing: AppTokens.space8,
-      runSpacing: AppTokens.space8,
+      spacing: AppTokens.space12,
+      runSpacing: AppTokens.space12,
       alignment: wide ? WrapAlignment.start : WrapAlignment.center,
       children: [
         if (summary.whatsapp != null && !isSelf)
           _HeaderAction(
-            icon: Icons.chat_outlined,
+            icon: Icons.chat_rounded,
             label: 'WhatsApp',
+            tint: AppColors.success,
             onTap: () => ContactActions.whatsApp(context, summary.whatsapp!),
           ),
         if (summary.phone != null && !isSelf)
           _HeaderAction(
-            icon: Icons.call_outlined,
+            icon: Icons.call_rounded,
             label: 'Ligar',
+            tint: AppColors.primary,
             onTap: () => ContactActions.call(context, summary.phone!),
+          ),
+        if (user.can('event.write'))
+          _HeaderAction(
+            icon: Icons.event_available_rounded,
+            label: 'Agendar',
+            tint: AppColors.secondary,
+            onTap: () => context.go('/calendar/new?pastorId=${summary.id}'),
           ),
         if (summary.email != null && !isSelf)
           _HeaderAction(
             icon: Icons.mail_outline_rounded,
             label: 'E-mail',
+            tint: AppColors.neutral,
             onTap: () => ContactActions.email(context, summary.email!),
           ),
         if (user.can('care.write') && !isSelf)
           _HeaderAction(
             icon: Icons.add_task_rounded,
-            label: 'Registrar acompanhamento',
+            label: 'Acompanhar',
             primary: true,
             onTap: () => context.go('/care/new?pastorId=${summary.id}'),
           ),
@@ -403,6 +425,7 @@ class _HeaderAction extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.primary = false,
+    this.tint,
   });
 
   final IconData icon;
@@ -410,22 +433,46 @@ class _HeaderAction extends StatelessWidget {
   final VoidCallback onTap;
   final bool primary;
 
+  /// Cor do icone quando a acao nao e a principal.
+  final Color? tint;
+
   @override
   Widget build(BuildContext context) {
-    final style = primary
-        ? FilledButton.styleFrom(
-            backgroundColor: AppColors.secondary,
-            foregroundColor: Colors.white,
-          )
-        : FilledButton.styleFrom(
-            backgroundColor: Colors.white.withValues(alpha: 0.16),
-            foregroundColor: Colors.white,
-          );
-    return FilledButton.icon(
-      style: style,
-      onPressed: onTap,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
+    // Formato do desenho: quadrado claro com icone colorido e rotulo abaixo.
+    // IconButton ja expoe papel de botao e rotulo para leitores de tela.
+    final iconColor = primary ? Colors.white : (tint ?? AppColors.primary);
+    return SizedBox(
+      width: 78,
+      child: Column(
+        children: [
+          IconButton(
+            tooltip: label,
+            onPressed: onTap,
+            icon: Icon(icon, size: 22),
+            style: IconButton.styleFrom(
+              backgroundColor: primary ? AppColors.secondary : Colors.white,
+              foregroundColor: iconColor,
+              minimumSize: const Size(52, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTokens.radius16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11.5,
+              height: 1.15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -584,6 +631,30 @@ class _Section extends StatelessWidget {
   }
 }
 
+/// Titulo de um grupo dentro da aba: as abas do desenho reunem varias secoes,
+/// e cada uma precisa se anunciar.
+class _GroupHeading extends StatelessWidget {
+  const _GroupHeading(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTokens.space8),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          color: AppColors.mutedInk,
+          fontSize: 11,
+          letterSpacing: 1,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 class _Field extends StatelessWidget {
   const _Field(this.label, this.value, {this.icon, this.onTap});
 
@@ -662,9 +733,11 @@ Widget _confidentialityBadge(String level) => switch (level) {
   _ => const SizedBox.shrink(),
 };
 
-Widget _loadingTab() => const _TabBody(children: [SkeletonCard(lines: 4)]);
-
-/// Estado de aba com as tres variacoes padronizadas.
+/// Estado de uma secao do perfil, com as tres variacoes padronizadas.
+///
+/// Devolve uma coluna (nao um ListView): varias secoes convivem na mesma aba
+/// e quem rola e o `_TabBody`. Um 403 em uma secao mostra o aviso de acesso
+/// e deixa as outras de pe.
 Widget _asyncTab<T>(
   WidgetRef ref,
   AsyncValue<T> value,
@@ -673,11 +746,14 @@ Widget _asyncTab<T>(
 ) {
   return value.when(
     skipLoadingOnRefresh: true,
-    loading: _loadingTab,
-    error: (e, _) => _TabBody(
-      children: [InlineError(message: errorMessage(e), onRetry: retry)],
+    loading: () => const SkeletonCard(lines: 4),
+    error: (e, _) => isForbidden(e)
+        ? const NoAccessNotice()
+        : InlineError(message: errorMessage(e), onRetry: retry),
+    data: (data) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: build(data),
     ),
-    data: (data) => _TabBody(children: build(data)),
   );
 }
 
@@ -693,11 +769,24 @@ class _SummaryTab extends ConsumerWidget {
       ref.watch(pastorSummaryProvider(pastorId)),
       () => ref.invalidate(pastorSummaryProvider(pastorId)),
       (s) => [
-        if (s.biography != null)
-          _Section(
-            title: 'Sobre',
-            children: [Text(s.biography!, style: const TextStyle(height: 1.5))],
-          ),
+        _Section(
+          title: 'Sobre',
+          children: [
+            Text(
+              s.biography ??
+                  'Este pastor ainda não adicionou uma apresentação ao seu perfil.',
+              style: const TextStyle(height: 1.5),
+            ),
+            if (s.joinedAt != null) ...[
+              const SizedBox(height: AppTokens.space12),
+              _Field(
+                'Na rede desde',
+                Formatters.date(s.joinedAt!),
+                icon: Icons.groups_outlined,
+              ),
+            ],
+          ],
+        ),
         _Section(
           title: 'Contato',
           children: [

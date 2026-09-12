@@ -7,6 +7,7 @@ import '../../../core/responsive/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/searchable_select.dart';
 import '../../../core/widgets/async_value_view.dart';
 import '../data/requests_providers.dart';
 import '../domain/request_models.dart';
@@ -186,7 +187,7 @@ class _RequestFormScreenState extends ConsumerState<RequestFormScreen> {
                           : null,
                     ),
                     const SizedBox(height: AppTokens.space16),
-                    DropdownButtonFormField<RequestPriorityKind>(
+                    SearchableSelectFormField<RequestPriorityKind>(
                       initialValue: _priority,
                       decoration: const InputDecoration(
                         labelText: 'Prioridade',

@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/searchable_select.dart';
 import '../../network/data/network_providers.dart';
 import '../data/schedule_providers.dart';
 import '../domain/calendar_event.dart';
@@ -161,7 +162,7 @@ class _EventFormScreenState extends ConsumerState<EventFormScreen> {
                           : null,
                     ),
                     const SizedBox(height: AppTokens.space16),
-                    DropdownButtonFormField<CalendarEventType>(
+                    SearchableSelectFormField<CalendarEventType>(
                       initialValue: _type,
                       decoration: const InputDecoration(labelText: 'Tipo'),
                       items: [

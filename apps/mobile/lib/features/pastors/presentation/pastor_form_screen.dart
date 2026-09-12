@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/searchable_select.dart';
 import '../data/pastor_form_providers.dart';
 import '../domain/new_pastor.dart';
 
@@ -116,8 +117,10 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
   Widget build(BuildContext context) {
     final padding = context.windowSize.pagePadding;
     final countries = ref.watch(pastorCountryOptionsProvider).value ?? const [];
-    final regions = ref.watch(regionOptionsProvider(_countryId)).value ?? const [];
-    final churches = ref.watch(churchOptionsProvider(_countryId)).value ?? const [];
+    final regions =
+        ref.watch(regionOptionsProvider(_countryId)).value ?? const [];
+    final churches =
+        ref.watch(churchOptionsProvider(_countryId)).value ?? const [];
     final roles = ref.watch(ministryRoleOptionsProvider).value ?? const [];
     final supervisors = ref.watch(supervisorOptionsProvider).value ?? const [];
 
@@ -125,21 +128,27 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 760),
         child: ListView(
-          padding: EdgeInsets.fromLTRB(padding, padding, padding, AppTokens.space32),
+          padding: EdgeInsets.fromLTRB(
+            padding,
+            padding,
+            padding,
+            AppTokens.space32,
+          ),
           children: [
             Row(
               children: [
                 IconButton(
                   tooltip: 'Voltar',
-                  onPressed: () => context.canPop() ? context.pop() : context.go('/pastors'),
+                  onPressed: () =>
+                      context.canPop() ? context.pop() : context.go('/pastors'),
                   icon: const Icon(Icons.arrow_back_rounded),
                 ),
                 const SizedBox(width: AppTokens.space8),
                 Text(
                   'Cadastrar pastor',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ],
             ),
@@ -155,7 +164,9 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                         padding: const EdgeInsets.all(AppTokens.space12),
                         decoration: BoxDecoration(
                           color: AppColors.alert.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(AppTokens.radius12),
+                          borderRadius: BorderRadius.circular(
+                            AppTokens.radius12,
+                          ),
                         ),
                         child: Text(_error!),
                       ),
@@ -167,15 +178,19 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                         controller: _firstName,
                         textCapitalization: TextCapitalization.words,
                         decoration: const InputDecoration(labelText: 'Nome'),
-                        validator: (v) =>
-                            (v ?? '').trim().length < 2 ? 'Informe o nome.' : null,
+                        validator: (v) => (v ?? '').trim().length < 2
+                            ? 'Informe o nome.'
+                            : null,
                       ),
                       second: TextFormField(
                         controller: _lastName,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(labelText: 'Sobrenome'),
-                        validator: (v) =>
-                            (v ?? '').trim().length < 2 ? 'Informe o sobrenome.' : null,
+                        decoration: const InputDecoration(
+                          labelText: 'Sobrenome',
+                        ),
+                        validator: (v) => (v ?? '').trim().length < 2
+                            ? 'Informe o sobrenome.'
+                            : null,
                       ),
                     ),
                     const SizedBox(height: AppTokens.space16),
@@ -196,14 +211,20 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                         firstDate: DateTime(1920),
                         lastDate: DateTime.now(),
                       ),
-                      second: DropdownButtonFormField<MaritalStatus>(
+                      second: SearchableSelectFormField<MaritalStatus>(
                         initialValue: _maritalStatus,
-                        decoration: const InputDecoration(labelText: 'Estado civil'),
+                        decoration: const InputDecoration(
+                          labelText: 'Estado civil',
+                        ),
                         items: [
                           for (final status in MaritalStatus.values)
-                            DropdownMenuItem(value: status, child: Text(status.label)),
+                            DropdownMenuItem(
+                              value: status,
+                              child: Text(status.label),
+                            ),
                         ],
-                        onChanged: (value) => setState(() => _maritalStatus = value),
+                        onChanged: (value) =>
+                            setState(() => _maritalStatus = value),
                       ),
                     ),
                     if (_maritalStatus == MaritalStatus.married) ...[
@@ -211,7 +232,9 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                       TextFormField(
                         controller: _spouseName,
                         textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(labelText: 'Nome do cônjuge'),
+                        decoration: const InputDecoration(
+                          labelText: 'Nome do cônjuge',
+                        ),
                       ),
                     ],
                     const Divider(height: AppTokens.space32),
@@ -252,12 +275,15 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                     ),
                     const Divider(height: AppTokens.space32),
                     const _SectionTitle('Onde atua'),
-                    DropdownButtonFormField<String>(
+                    SearchableSelectFormField<String>(
                       initialValue: _countryId,
                       decoration: const InputDecoration(labelText: 'País'),
                       items: [
                         for (final country in countries)
-                          DropdownMenuItem(value: country.id, child: Text(country.label)),
+                          DropdownMenuItem(
+                            value: country.id,
+                            child: Text(country.label),
+                          ),
                       ],
                       onChanged: (value) => setState(() {
                         _countryId = value;
@@ -265,19 +291,25 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                         _regionId = null;
                         _churchId = null;
                       }),
-                      validator: (value) => value == null ? 'Escolha o país.' : null,
+                      validator: (value) =>
+                          value == null ? 'Escolha o país.' : null,
                     ),
                     const SizedBox(height: AppTokens.space16),
                     _TwoColumns(
-                      first: DropdownButtonFormField<String>(
+                      first: SearchableSelectFormField<String>(
                         initialValue: _regionId,
                         decoration: InputDecoration(
                           labelText: 'Região',
-                          helperText: _countryId == null ? 'Escolha o país primeiro' : null,
+                          helperText: _countryId == null
+                              ? 'Escolha o país primeiro'
+                              : null,
                         ),
                         items: [
                           for (final region in regions)
-                            DropdownMenuItem(value: region.id, child: Text(region.label)),
+                            DropdownMenuItem(
+                              value: region.id,
+                              child: Text(region.label),
+                            ),
                         ],
                         onChanged: regions.isEmpty
                             ? null
@@ -291,7 +323,7 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                     ),
                     const Divider(height: AppTokens.space32),
                     const _SectionTitle('Ministério'),
-                    DropdownButtonFormField<String>(
+                    SearchableSelectFormField<String>(
                       initialValue: _churchId,
                       decoration: const InputDecoration(labelText: 'Igreja'),
                       items: [
@@ -312,16 +344,22 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                     ),
                     const SizedBox(height: AppTokens.space16),
                     _TwoColumns(
-                      first: DropdownButtonFormField<String>(
+                      first: SearchableSelectFormField<String>(
                         initialValue: _ministryRoleId,
-                        decoration: const InputDecoration(labelText: 'Cargo ministerial'),
+                        decoration: const InputDecoration(
+                          labelText: 'Cargo ministerial',
+                        ),
                         items: [
                           for (final role in roles)
-                            DropdownMenuItem(value: role.id, child: Text(role.label)),
+                            DropdownMenuItem(
+                              value: role.id,
+                              child: Text(role.label),
+                            ),
                         ],
                         onChanged: roles.isEmpty
                             ? null
-                            : (value) => setState(() => _ministryRoleId = value),
+                            : (value) =>
+                                  setState(() => _ministryRoleId = value),
                       ),
                       second: TextFormField(
                         controller: _ministryTitle,
@@ -349,7 +387,7 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                       ),
                     ),
                     const SizedBox(height: AppTokens.space16),
-                    DropdownButtonFormField<String>(
+                    SearchableSelectFormField<String>(
                       initialValue: _supervisorId,
                       decoration: const InputDecoration(
                         labelText: 'Supervisor',
@@ -359,7 +397,10 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                         for (final supervisor in supervisors)
                           DropdownMenuItem(
                             value: supervisor.id,
-                            child: Text(supervisor.label, overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              supervisor.label,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                       ],
                       onChanged: supervisors.isEmpty
@@ -371,7 +412,8 @@ class _PastorFormScreenState extends ConsumerState<PastorFormScreen> {
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       value: _createUserAccount,
-                      onChanged: (value) => setState(() => _createUserAccount = value),
+                      onChanged: (value) =>
+                          setState(() => _createUserAccount = value),
                       title: const Text('Criar conta de acesso'),
                       subtitle: const Text(
                         'A API gera uma senha temporária e exige a troca no primeiro acesso. '
@@ -423,7 +465,11 @@ class _TwoColumns extends StatelessWidget {
         if (constraints.maxWidth < 520) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [first, const SizedBox(height: AppTokens.space16), second],
+            children: [
+              first,
+              const SizedBox(height: AppTokens.space16),
+              second,
+            ],
           );
         }
         return Row(
@@ -473,7 +519,9 @@ class _DateField extends StatelessWidget {
         ),
         child: Text(
           value == null ? 'Não informado' : Formatters.date(value!),
-          style: TextStyle(color: value == null ? AppColors.mutedInk : AppColors.ink),
+          style: TextStyle(
+            color: value == null ? AppColors.mutedInk : AppColors.ink,
+          ),
         ),
       ),
     );

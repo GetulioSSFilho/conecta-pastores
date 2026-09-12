@@ -37,7 +37,6 @@ class DashboardScreen extends ConsumerWidget {
 
     final sections = <Widget>[
       _Greeting(user: user, showActions: size.isCompact),
-      if (user.can('report.read_global')) const _GlobalOverview(),
       if (user.isLeader)
         ..._leaderSections(size)
       else
@@ -95,13 +94,15 @@ class DashboardScreen extends ConsumerWidget {
     ),
   ];
 
+  // Ordem do desenho: o compromisso mais proximo, o que a lideranca comunicou,
+  // os atalhos do proprio ministerio e, por fim, como pedir ajuda.
   List<Widget> _pastorSections(WindowSize size, AuthUser user) => [
     _TwoColumns(
       enabled: size.isAtLeastMedium,
       left: const _NextCommitmentSection(),
-      right: const _MinistrySection(),
+      right: const _AnnouncementsSection(),
     ),
-    const _AnnouncementsSection(),
+    const _MinistrySection(),
     const _HelpCard(),
   ];
 }
@@ -160,7 +161,9 @@ class _Greeting extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Olá, ${user.firstName}',
+                user.isLeader
+                    ? 'Olá, ${user.firstName}'
+                    : 'Olá, ${user.firstName} 👋',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -168,8 +171,8 @@ class _Greeting extends ConsumerWidget {
               const SizedBox(height: AppTokens.space4),
               Text(
                 user.isLeader
-                    ? '${Formatters.fullDate(DateTime.now())} · resumo da sua rede'
-                    : Formatters.fullDate(DateTime.now()),
+                    ? 'Aqui está um resumo da sua rede.'
+                    : 'Que bom te ver por aqui!',
                 style: const TextStyle(color: AppColors.mutedInk),
               ),
             ],
@@ -196,76 +199,6 @@ class _Greeting extends ConsumerWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Visao global (admin/lider nacional)
-// -----------------------------------------------------------------------------
-
-class _GlobalOverview extends ConsumerWidget {
-  const _GlobalOverview();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return AsyncValueView(
-      value: ref.watch(globalDashboardProvider),
-      hideWhenForbidden: true,
-      onRetry: () => ref.invalidate(globalDashboardProvider),
-      loading: const Skeleton(height: 72, radius: AppTokens.radius16),
-      data: (g) => _MetricGrid(
-        items: [
-          _MetricData(
-            '${g.totalPastors}',
-            'Pastores',
-            Icons.people_alt_outlined,
-            AppColors.softPrimary,
-            AppColors.primary,
-            '/pastors',
-          ),
-          _MetricData(
-            '${g.activePastors}',
-            'Ativos',
-            Icons.verified_outlined,
-            const Color(0xFFE7F7F2),
-            AppColors.success,
-            '/pastors?status=ACTIVE',
-          ),
-          _MetricData(
-            '${g.totalChurches}',
-            'Igrejas',
-            Icons.church_outlined,
-            AppColors.softBlue,
-            AppColors.primary,
-            '/churches',
-          ),
-          _MetricData(
-            '${g.countries}',
-            g.countries == 1 ? 'País' : 'Países',
-            Icons.public_rounded,
-            AppColors.softPurple,
-            AppColors.primary,
-            '/map',
-          ),
-          _MetricData(
-            '${g.regions}',
-            g.regions == 1 ? 'Região' : 'Regiões',
-            Icons.map_outlined,
-            AppColors.softOrange,
-            AppColors.accent,
-            '/map',
-          ),
-          _MetricData(
-            '${g.newPastors}',
-            'Novos (30 dias)',
-            Icons.person_add_alt_1_outlined,
-            const Color(0xFFE7F7F2),
-            AppColors.success,
-            '/pastors?sortBy=createdAt&sortOrder=desc',
-          ),
-        ],
-      ),
     );
   }
 }
@@ -340,11 +273,14 @@ class _LeaderMetrics extends ConsumerWidget {
       value: ref.watch(leaderDashboardProvider),
       onRetry: () => ref.invalidate(leaderDashboardProvider),
       loading: const Skeleton(height: 72, radius: AppTokens.radius16),
+      // Tres numeros, como no desenho: tamanho da rede, quem esta sem
+      // acompanhamento e o que chegou para responder. O resto dos totais
+      // vive em Relatorios.
       data: (d) => _MetricGrid(
         items: [
           _MetricData(
             '${d.totalInNetwork}',
-            'Pastores na rede',
+            'Pastores',
             Icons.account_tree_outlined,
             AppColors.softPrimary,
             AppColors.primary,
@@ -352,42 +288,18 @@ class _LeaderMetrics extends ConsumerWidget {
           ),
           _MetricData(
             '${d.withoutCareOver30Days}',
-            'Há mais de 30 dias',
+            '> 30 dias',
             Icons.schedule_rounded,
             const Color(0xFFFFE9E9),
             AppColors.alert,
             '/network?careOverdueDays=30',
           ),
           _MetricData(
-            '${d.neverCared}',
-            'Nunca acompanhados',
-            Icons.person_off_outlined,
+            '${d.openRequests}',
+            'Pedidos',
+            Icons.support_agent_outlined,
             AppColors.softOrange,
             AppColors.accent,
-            '/network?neverCared=true',
-          ),
-          _MetricData(
-            '${d.careThisWeek}',
-            'Acompanhamentos na semana',
-            Icons.volunteer_activism_outlined,
-            const Color(0xFFE7F7F2),
-            AppColors.success,
-            '/care',
-          ),
-          _MetricData(
-            '${d.upcomingCareNext7Days}',
-            'Agendados (7 dias)',
-            Icons.event_available_outlined,
-            AppColors.softBlue,
-            AppColors.primary,
-            '/calendar',
-          ),
-          _MetricData(
-            '${d.openRequests}',
-            'Solicitações comigo',
-            Icons.support_agent_outlined,
-            AppColors.softPurple,
-            AppColors.primary,
             '/requests',
           ),
         ],
@@ -957,83 +869,7 @@ class _MinistrySection extends ConsumerWidget {
             value: ref.watch(pastorDashboardProvider),
             onRetry: () => ref.invalidate(pastorDashboardProvider),
             loading: const _ListSkeleton(),
-            data: (d) => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(
-                    Icons.church_outlined,
-                    color: AppColors.primary,
-                  ),
-                  title: Text(d.church?.name ?? 'Sem igreja vinculada'),
-                  subtitle: Text(d.church?.city ?? 'Minha igreja'),
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(
-                    Icons.supervisor_account_outlined,
-                    color: AppColors.primary,
-                  ),
-                  title: Text(d.leadership?.name ?? 'Sem supervisor definido'),
-                  subtitle: const Text('Minha liderança'),
-                  trailing: d.leadership == null
-                      ? null
-                      : const Icon(Icons.chevron_right_rounded),
-                  onTap: d.leadership == null
-                      ? null
-                      : () => context.go('/pastors/${d.leadership!.id}'),
-                ),
-                const Divider(),
-                Wrap(
-                  spacing: AppTokens.space8,
-                  runSpacing: AppTokens.space8,
-                  children: [
-                    _CountChip(
-                      icon: Icons.notifications_none_rounded,
-                      label: Formatters.count(
-                        d.unreadNotifications,
-                        'notificação',
-                        'notificações',
-                      ),
-                      path: '/notifications',
-                    ),
-                    _CountChip(
-                      icon: Icons.support_agent_outlined,
-                      label: Formatters.count(
-                        d.openRequests,
-                        'solicitação aberta',
-                        'solicitações abertas',
-                      ),
-                      path: '/requests',
-                    ),
-                    _CountChip(
-                      icon: Icons.event_note_outlined,
-                      label: Formatters.count(
-                        d.expiringDocuments,
-                        'documento vencendo',
-                        'documentos vencendo',
-                      ),
-                      path: '/documents',
-                      alert: d.expiringDocuments > 0,
-                    ),
-                    _CountChip(
-                      icon: Icons.school_outlined,
-                      label: d.trainingTotal == 0
-                          ? 'Nenhum treinamento'
-                          : d.trainingPending == 0
-                          ? 'Formação ${d.trainingProgressPct}% concluída'
-                          : Formatters.count(
-                              d.trainingPending,
-                              'treinamento pendente',
-                              'treinamentos pendentes',
-                            ),
-                      path: '/training',
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            data: (d) => _MinistryTiles(dashboard: d),
           ),
         ],
       ),
@@ -1041,31 +877,137 @@ class _MinistrySection extends ConsumerWidget {
   }
 }
 
-class _CountChip extends StatelessWidget {
-  const _CountChip({
+/// Grade 2x2 do desenho: os quatro atalhos do proprio ministerio.
+/// O subtitulo e sempre fato (nome da igreja, nome do supervisor, progresso).
+class _MinistryTiles extends StatelessWidget {
+  const _MinistryTiles({required this.dashboard});
+
+  final PastorDashboard dashboard;
+
+  @override
+  Widget build(BuildContext context) {
+    final church = dashboard.church;
+    final leadership = dashboard.leadership;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = AppTokens.space12;
+        final width = (constraints.maxWidth - gap) / 2;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            SizedBox(
+              width: width,
+              child: _MinistryTile(
+                icon: Icons.church_outlined,
+                label: 'Minha Igreja',
+                detail: church?.name ?? 'Sem igreja vinculada',
+                color: AppColors.softPrimary,
+                onTap: church == null
+                    ? null
+                    : () => context.go('/churches/${church.id}'),
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _MinistryTile(
+                icon: Icons.supervisor_account_outlined,
+                label: 'Minha liderança',
+                detail: leadership?.name ?? 'Sem supervisor definido',
+                color: const Color(0xFFE7F7F2),
+                onTap: leadership == null
+                    ? null
+                    : () => context.go('/pastors/${leadership.id}'),
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _MinistryTile(
+                icon: Icons.calendar_month_outlined,
+                label: 'Agenda',
+                detail: dashboard.nextEvent == null
+                    ? 'Nada agendado'
+                    : Formatters.relativeDateTime(
+                        dashboard.nextEvent!.startsAt,
+                      ),
+                color: AppColors.softBlue,
+                onTap: () => context.go('/calendar'),
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _MinistryTile(
+                icon: Icons.school_outlined,
+                label: 'Formação',
+                detail: dashboard.trainingTotal == 0
+                    ? 'Nenhuma matrícula'
+                    : '${dashboard.trainingProgressPct}% concluída',
+                color: AppColors.softPurple,
+                onTap: () => context.go('/training'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _MinistryTile extends StatelessWidget {
+  const _MinistryTile({
     required this.icon,
     required this.label,
-    required this.path,
-    this.alert = false,
+    required this.detail,
+    required this.color,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final String path;
-  final bool alert;
+  final String detail;
+  final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      avatar: Icon(
-        icon,
-        size: 18,
-        color: alert ? AppColors.alert : AppColors.primary,
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(AppTokens.radius16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTokens.radius16),
+        child: Padding(
+          padding: const EdgeInsets.all(AppTokens.space16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: AppColors.primary),
+              const SizedBox(height: AppTokens.space8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.ink,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.mutedInk,
+                  fontSize: 12,
+                  height: 1.25,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      label: Text(label),
-      onPressed: () => context.go(path),
-      side: const BorderSide(color: AppColors.border),
-      backgroundColor: AppColors.surface,
     );
   }
 }

@@ -15,6 +15,9 @@ class PastorSummary {
     required this.status,
     required this.neverCared,
     this.photoUrl,
+    this.ministryTitle,
+    this.ministryRoleName,
+    this.joinedAt,
     this.email,
     this.phone,
     this.whatsapp,
@@ -44,6 +47,9 @@ class PastorSummary {
       lastName: json['lastName'] as String? ?? '',
       status: json['status'] as String? ?? 'ACTIVE',
       photoUrl: _str(json['photoUrl']),
+      ministryTitle: _str(json['ministryTitle']),
+      ministryRoleName: _str(_map(json['ministryRole'])['name']),
+      joinedAt: _date(json['joinedAt']),
       email: _str(json['email']),
       phone: _str(json['phoneE164']),
       whatsapp: _str(json['whatsappE164']),
@@ -72,6 +78,9 @@ class PastorSummary {
   final String lastName;
   final String status;
   final String? photoUrl;
+  final String? ministryTitle;
+  final String? ministryRoleName;
+  final DateTime? joinedAt;
   final String? email;
   final String? phone;
   final String? whatsapp;

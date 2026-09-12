@@ -33,6 +33,7 @@ class PastorListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     final status = PastorStatus.fromApi(pastor.status);
     final place = [
       pastor.churchName,
@@ -60,7 +61,7 @@ class PastorListTile extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         pastor.pastoralName,
                         maxLines: 1,
@@ -73,13 +74,17 @@ class PastorListTile extends StatelessWidget {
                     ),
                     if (status != PastorStatus.active) ...[
                       const SizedBox(width: AppTokens.space8),
-                      _Pill(label: status.label, color: status.color),
+                      Flexible(
+                        child: _Pill(label: status.label, color: status.color),
+                      ),
                     ],
                     if (showDepth && pastor.depth > 1) ...[
                       const SizedBox(width: AppTokens.space8),
-                      _Pill(
-                        label: 'Nível ${pastor.depth}',
-                        color: AppColors.neutral,
+                      Flexible(
+                        child: _Pill(
+                          label: 'Nível ${pastor.depth}',
+                          color: AppColors.neutral,
+                        ),
                       ),
                     ],
                   ],
@@ -97,9 +102,8 @@ class PastorListTile extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 6),
-                Wrap(
-                  spacing: AppTokens.space12,
-                  runSpacing: 4,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _Fact(
                       icon: Icons.history_rounded,
@@ -123,6 +127,13 @@ class PastorListTile extends StatelessWidget {
           ),
           if (pastor.whatsapp != null)
             IconButton(
+              constraints: compact
+                  ? const BoxConstraints.tightFor(width: 36, height: 36)
+                  : null,
+              padding: compact ? EdgeInsets.zero : null,
+              visualDensity: compact
+                  ? VisualDensity.compact
+                  : VisualDensity.standard,
               tooltip: 'Conversar no WhatsApp',
               onPressed: () =>
                   ContactActions.whatsApp(context, pastor.whatsapp!),
@@ -130,6 +141,13 @@ class PastorListTile extends StatelessWidget {
             ),
           if (onRegisterCare != null)
             IconButton(
+              constraints: compact
+                  ? const BoxConstraints.tightFor(width: 36, height: 36)
+                  : null,
+              padding: compact ? EdgeInsets.zero : null,
+              visualDensity: compact
+                  ? VisualDensity.compact
+                  : VisualDensity.standard,
               tooltip: 'Registrar acompanhamento',
               onPressed: onRegisterCare,
               icon: const Icon(
@@ -137,7 +155,13 @@ class PastorListTile extends StatelessWidget {
                 color: AppColors.primary,
               ),
             ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.mutedInk),
+          SizedBox(
+            width: compact ? 24 : 48,
+            child: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.mutedInk,
+            ),
+          ),
         ],
       ),
     );
@@ -154,16 +178,19 @@ class _Fact extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -187,6 +214,8 @@ class _Pill extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: color,
           fontSize: 11,

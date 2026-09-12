@@ -104,7 +104,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Olá, Paulo'), findsOneWidget);
-    expect(find.text('Pastores na rede'), findsOneWidget);
+    expect(find.text('Pastores'), findsOneWidget);
     expect(find.text('42'), findsOneWidget);
     expect(find.text('63 dias sem acompanhamento'), findsOneWidget);
     expect(find.text('Nunca acompanhado'), findsOneWidget);
@@ -149,6 +149,7 @@ void main() {
           openRequests: 2,
           trainingTotal: 4,
           trainingCompleted: 1,
+          trainingProgressPct: 25,
         ),
       ),
     );
@@ -157,8 +158,7 @@ void main() {
     expect(find.text('Reunião com liderança'), findsOneWidget);
     expect(find.text('Igreja Belo Horizonte'), findsOneWidget);
     expect(find.text('Pr. Paulo Ribeiro'), findsOneWidget);
-    expect(find.text('2 solicitações abertas'), findsOneWidget);
-    expect(find.text('3 treinamentos pendentes'), findsOneWidget);
+    expect(find.text('25% concluída'), findsOneWidget);
     expect(find.text('Pastores na rede'), findsNothing);
     expect(find.text('Precisa de ajuda?'), findsOneWidget);
   });

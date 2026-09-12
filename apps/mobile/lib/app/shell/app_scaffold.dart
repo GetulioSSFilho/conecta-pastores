@@ -42,12 +42,20 @@ class AppScaffold extends ConsumerWidget {
     if (size.isCompact) {
       final items = compactDestinationsFor(user);
       final index = items.indexWhere((d) => d.matches(location));
+      // Quinto item do desenho: Perfil. Quem nao tem pastor vinculado nao tem
+      // perfil para abrir, e recebe o menu "Mais" no lugar.
+      final hasProfile = user.pastorId != null;
       return Scaffold(
+        drawer: _MobileDrawer(user: user, location: location),
+        appBar: const _MobileMenuBar(),
         body: SafeArea(bottom: false, child: body),
         bottomNavigationBar: NavigationBar(
           selectedIndex: index >= 0 ? index : items.length,
-          onDestinationSelected: (i) =>
-              context.go(i < items.length ? items[i].path : '/more'),
+          onDestinationSelected: (i) => context.go(
+            i < items.length
+                ? items[i].path
+                : (hasProfile ? '/profile' : '/more'),
+          ),
           destinations: [
             for (final d in items)
               NavigationDestination(
@@ -55,10 +63,14 @@ class AppScaffold extends ConsumerWidget {
                 selectedIcon: Icon(d.selectedIcon),
                 label: d.label,
               ),
-            const NavigationDestination(
-              icon: Icon(Icons.menu_rounded),
-              selectedIcon: Icon(Icons.menu_open_rounded),
-              label: 'Mais',
+            NavigationDestination(
+              icon: Icon(
+                hasProfile ? Icons.person_outline_rounded : Icons.menu_rounded,
+              ),
+              selectedIcon: Icon(
+                hasProfile ? Icons.person_rounded : Icons.menu_open_rounded,
+              ),
+              label: hasProfile ? 'Perfil' : 'Mais',
             ),
           ],
         ),
@@ -81,6 +93,185 @@ class AppScaffold extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Barra minima do celular. As telas continuam responsaveis pelo proprio
+/// cabecalho, mas o menu global fica sempre disponivel no topo.
+class _MobileMenuBar extends StatelessWidget implements PreferredSizeWidget {
+  const _MobileMenuBar();
+
+  @override
+  Size get preferredSize => const Size.fromHeight(48);
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      automaticallyImplyLeading: false,
+      toolbarHeight: preferredSize.height,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor: AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      titleSpacing: 8,
+      leading: Builder(
+        builder: (context) => IconButton(
+          tooltip: 'Abrir menu',
+          icon: const Icon(Icons.menu_rounded),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
+      ),
+      title: const Text(
+        'Conecta Pastores',
+        style: TextStyle(
+          color: AppColors.ink,
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      shape: const Border(bottom: BorderSide(color: AppColors.border)),
+    );
+  }
+}
+
+class _MobileDrawer extends StatelessWidget {
+  const _MobileDrawer({required this.user, required this.location});
+
+  final AuthUser user;
+  final String location;
+
+  @override
+  Widget build(BuildContext context) {
+    final destinations = destinationsFor(user);
+    return Drawer(
+      child: SafeArea(
+        right: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 16, 18),
+              child: Row(
+                children: [
+                  const AppBrandMark(size: 34),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Conecta\nPastores',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 17,
+                        height: 1.05,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Fechar menu',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+                children: [
+                  for (final group in NavGroup.values) ...[
+                    if (destinations.any((d) => d.group == group)) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+                        child: Text(
+                          groupLabel(group).toUpperCase(),
+                          style: const TextStyle(
+                            color: AppColors.mutedInk,
+                            fontSize: 11,
+                            letterSpacing: 0.8,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      for (final destination in destinations.where(
+                        (d) => d.group == group,
+                      ))
+                        _MobileDrawerTile(
+                          destination: destination,
+                          selected: destination.matches(location),
+                        ),
+                    ],
+                  ],
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(),
+                  ),
+                  _MobileDrawerTile(
+                    destination: AppDestination(
+                      path: '/settings',
+                      label: 'Configura\u00e7\u00f5es',
+                      icon: Icons.settings_outlined,
+                      selectedIcon: Icons.settings_rounded,
+                      group: NavGroup.management,
+                      visibleFor: (_) => true,
+                    ),
+                    selected: location.startsWith('/settings'),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+              child: Text(
+                '${user.displayName}\n${user.email}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.mutedInk,
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileDrawerTile extends StatelessWidget {
+  const _MobileDrawerTile({required this.destination, required this.selected});
+
+  final AppDestination destination;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      selected: selected,
+      selectedTileColor: AppColors.softPrimary,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTokens.radius12),
+      ),
+      leading: Icon(
+        selected ? destination.selectedIcon : destination.icon,
+        color: selected ? AppColors.primary : AppColors.mutedInk,
+      ),
+      title: Text(
+        destination.label,
+        style: TextStyle(
+          color: selected ? AppColors.primary : AppColors.ink,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      onTap: () {
+        Navigator.of(context).pop();
+        context.go(destination.path);
+      },
     );
   }
 }

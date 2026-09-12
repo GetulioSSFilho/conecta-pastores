@@ -95,7 +95,59 @@ void main() {
     await pumpAt(tester, 420, location: '/dashboard');
 
     expect(find.text('Início'), findsWidgets);
+    expect(find.text('Perfil'), findsWidgets);
+    handle.dispose();
+  });
+
+  testWidgets('celular abre menu lateral pelos destinos completos', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await pumpAt(tester, 420, location: '/network');
+
+    expect(find.byTooltip('Abrir menu'), findsOneWidget);
+    await tester.tap(find.byTooltip('Abrir menu'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Drawer), findsOneWidget);
+    expect(find.text('Pastores'), findsOneWidget);
+    expect(find.text('Configurações'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('celular usa Mais quando a conta nao tem pastor vinculado', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        retry: (_, _) => null,
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => FixedAuthController(
+              AuthSignedIn(
+                testUser(permissions: supervisorPermissions, pastorId: null),
+              ),
+            ),
+          ),
+          unreadNotificationsCountProvider.overrideWith((ref) async => 0),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: AppScaffold(
+            location: '/dashboard',
+            child: const Text('conteudo'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('Mais'), findsWidgets);
+    expect(find.text('Perfil'), findsNothing);
     handle.dispose();
   });
 }
