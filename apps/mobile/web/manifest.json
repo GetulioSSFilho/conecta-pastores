@@ -1,6 +1,6 @@
 {
-    "name": "pastoral_app",
-    "short_name": "pastoral_app",
+    "name": "Conecta Pastores",
+    "short_name": "Conecta",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
