@@ -102,6 +102,15 @@ export class AiCopilotService {
   /** Interpreta um pedido curto e devolve no máximo uma rota permitida. */
   async navigate(user: AuthenticatedUser, message: string) {
     const allowedPaths = this.allowedPaths(user);
+    const localMatch = this.localNavigationMatch(message);
+    if (localMatch && !allowedPaths.includes(localMatch.path)) {
+      return {
+        source: 'local',
+        model: null,
+        reply: 'Essa área não está disponível para o seu nível de acesso. Posso ajudar com outra parte da sua rotina.',
+        actionPath: null,
+      };
+    }
     if (this.ai.isEnabled) {
       try {
         const completion = await this.ai.complete([
@@ -112,7 +121,8 @@ export class AiCopilotService {
           { role: 'user', content: message.trim().slice(0, 400) },
         ], { jsonMode: true, maxTokens: 180 });
         const parsed = this.ai.parseJson<{ reply?: unknown; actionPath?: unknown }>(completion.text);
-        const path = typeof parsed.actionPath === 'string' && allowedPaths.includes(parsed.actionPath) ? parsed.actionPath : null;
+        const modelPath = typeof parsed.actionPath === 'string' && allowedPaths.includes(parsed.actionPath) ? parsed.actionPath : null;
+        const path = localMatch?.path ?? modelPath;
         return {
           source: 'nvidia-nim',
           model: completion.model,
@@ -170,13 +180,7 @@ export class AiCopilotService {
   }
 
   private localNavigation(user: AuthenticatedUser, message: string, allowedPaths: string[]) {
-    const normalized = message
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase();
-    const match = NAVIGATION_RULES.find((rule) =>
-      rule.terms.some((term) => normalized.includes(term.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))),
-    );
+    const match = this.localNavigationMatch(message);
     if (!match) {
       return { reply: 'Posso abrir a agenda, minha rede, acompanhamentos, solicitações ou relatórios. O que você precisa?', actionPath: null };
     }
@@ -184,6 +188,16 @@ export class AiCopilotService {
       return { reply: 'Essa área não está disponível para o seu nível de acesso. Posso ajudar com outra parte da sua rotina.', actionPath: null };
     }
     return { reply: this.replyFor(match.path), actionPath: match.path };
+  }
+
+  private localNavigationMatch(message: string) {
+    const normalized = message
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+    return NAVIGATION_RULES.find((rule) =>
+      rule.terms.some((term) => normalized.includes(term.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))),
+    );
   }
 
   private replyFor(path: string | null): string {

@@ -85,8 +85,13 @@ describe('AiCopilotService', () => {
       user({ permissions: [] }),
       'Quero ver minha rede',
     );
+    const relatorios = await service.navigate(
+      user({ permissions: ['event.read'] as never }),
+      'Abrir relatórios gerenciais',
+    );
 
     expect(agenda.actionPath).toBe('/calendar');
     expect(rede.actionPath).toBeNull();
+    expect(relatorios.actionPath).toBeNull();
   });
 });
