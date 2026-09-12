@@ -908,14 +908,17 @@ class _DemoTreeNode {
 }
 
 _DemoTreeNode _treeForScope(AuthUser? user) {
-  final root = _demoTree();
+  final root = _completeDemoTree();
   if (user == null) return root;
   final roles = user.roles;
   if (roles.contains('GLOBAL_ADMIN') || roles.contains('NATIONAL_LEADER')) {
     return root;
   }
   if (roles.contains('REGIONAL_LEADER')) {
-    return _treeBranch(root, const ['presidente', 'sobre-sudeste']);
+    return _treeBranch(root, const [
+      'presidente',
+      'sobre-sudeste',
+    ], includeDescendants: true);
   }
   if (roles.contains('SUPERVISOR') || user.isLeader) {
     return _treeBranch(root, const [
@@ -961,6 +964,7 @@ _DemoTreeNode _demoCopy(_DemoTreeNode node, List<_DemoTreeNode> children) =>
       warning: node.warning,
     );
 
+// ignore: unused_element
 _DemoTreeNode _demoTree() => const _DemoTreeNode(
   id: 'presidente',
   name: 'Pr. Carlos Mendes',
@@ -1060,6 +1064,215 @@ _DemoTreeNode _demoTree() => const _DemoTreeNode(
     ),
   ],
 );
+
+/// Gera os dados de demonstração completos: 4 sobre-regionais, 12 regionais,
+/// 24 sub-regionais e 109 pastores locais. Os dados continuam locais enquanto
+/// o contrato definitivo de organograma não for persistido.
+_DemoTreeNode _completeDemoTree() {
+  const overRegions = [
+    (
+      'sobre-sudeste',
+      'Pr. Paulo Ribeiro',
+      'Sudeste',
+      'assets/images/pastor_joao.png',
+      ['RMBH', 'Vale do Aço', 'Triângulo'],
+    ),
+    (
+      'sobre-centro-oeste',
+      'Pra. Renata Almeida',
+      'Centro-Oeste',
+      'assets/images/pastora_ana.png',
+      ['Brasília', 'Goiânia', 'Campo Grande'],
+    ),
+    (
+      'sobre-nordeste',
+      'Pr. Elias Carvalho',
+      'Nordeste',
+      'assets/images/pastor_carlos.png',
+      ['Salvador', 'Recife', 'Fortaleza'],
+    ),
+    (
+      'sobre-norte-sul',
+      'Pra. Miriam Azevedo',
+      'Norte e Sul',
+      'assets/images/pastora_lucia.png',
+      ['Belém', 'Curitiba', 'Porto Alegre'],
+    ),
+  ];
+  const regionalLeaders = [
+    'Pr. Jo\u00e3o Silva',
+    'Pra. Marta Oliveira',
+    'Pr. Marcos Lima',
+    'Pra. Ana Oliveira',
+    'Pr. Daniel Martins',
+    'Pra. Beatriz Lima',
+    'Pr. Samuel Costa',
+    'Pra. Juliana Reis',
+    'Pr. Andr\u00e9 Rocha',
+    'Pra. Helena Dias',
+    'Pr. Pedro Alves',
+    'Pra. Camila Souza',
+  ];
+  const subRegionalLeaders = [
+    'Pr. Lucas Ferreira',
+    'Pra. Marta Oliveira',
+    'Pr. Samuel Costa',
+    'Pra. Juliana Reis',
+    'Pr. Andr\u00e9 Rocha',
+    'Pra. Helena Dias',
+    'Pr. Pedro Alves',
+    'Pra. Camila Souza',
+    'Pr. Rafael Nunes',
+    'Pra. Patr\u00edcia Alves',
+    'Pr. Tiago Martins',
+    'Pra. Cl\u00e1udia Reis',
+  ];
+  const localFirstNames = [
+    'Jo\u00e3o',
+    'Ana',
+    'Marcos',
+    'Eduardo',
+    'Lucas',
+    'Marta',
+    'Andr\u00e9',
+    'Juliana',
+    'Rafael',
+    'Camila',
+    'Daniel',
+    'Beatriz',
+    'Samuel',
+    'Helena',
+    'Pedro',
+    'Patr\u00edcia',
+    'Tiago',
+    'Cl\u00e1udia',
+    'Felipe',
+    'Renata',
+  ];
+  const localSurnames = [
+    'Silva',
+    'Souza',
+    'Lima',
+    'Costa',
+    'Oliveira',
+    'Ferreira',
+    'Almeida',
+    'Carvalho',
+    'Ribeiro',
+    'Martins',
+    'Nogueira',
+    'Azevedo',
+    'Barros',
+    'Teixeira',
+    'Pereira',
+  ];
+  const photos = [
+    'assets/images/pastor_joao.png',
+    'assets/images/pastora_ana.png',
+    'assets/images/pastor_marcos.png',
+    'assets/images/pastora_lucia.png',
+    'assets/images/pastor_carlos.png',
+  ];
+
+  var pastorIndex = 0;
+  var regionalIndex = 0;
+  var subRegionalIndex = 0;
+  final overRegionalNodes = <_DemoTreeNode>[];
+
+  for (var overIndex = 0; overIndex < overRegions.length; overIndex++) {
+    final over = overRegions[overIndex];
+    final regionalNodes = <_DemoTreeNode>[];
+    for (var regionIndex = 0; regionIndex < over.$5.length; regionIndex++) {
+      final regionId = overIndex == 0 && regionIndex == 0
+          ? 'regional-rmbh'
+          : 'regional-$overIndex-$regionIndex';
+      final subRegionalNodes = <_DemoTreeNode>[];
+      for (var subIndex = 0; subIndex < 2; subIndex++) {
+        final subId = overIndex == 0 && regionIndex == 0 && subIndex == 0
+            ? 'sub-centro'
+            : 'sub-$overIndex-$regionIndex-$subIndex';
+        final localNodes = <_DemoTreeNode>[];
+        // 13 dos 24 sub-regionais recebem cinco pastores e os demais quatro:
+        // total de 109, distribuídos sem concentrar toda a rede em um ramo.
+        final localCount = subRegionalIndex < 13 ? 5 : 4;
+        for (var localIndex = 0; localIndex < localCount; localIndex++) {
+          final index = pastorIndex++;
+          final knownNames = const [
+            'Pr. Jo\u00e3o Silva',
+            'Pra. Ana Souza',
+            'Pr. Marcos Lima',
+            'Pr. Eduardo Costa',
+          ];
+          final name = index < knownNames.length
+              ? knownNames[index]
+              : '${index.isEven ? 'Pr.' : 'Pra.'} '
+                    '${localFirstNames[(index - 4) % localFirstNames.length]} '
+                    '${localSurnames[(index - 4) ~/ localFirstNames.length % localSurnames.length]}';
+          final detail = index == 2
+              ? 'Pastor local \u00b7 54 dias'
+              : index == 3
+              ? 'Pastor local \u00b7 agenda em dia'
+              : 'Pastor local \u00b7 ${8 + (index * 3) % 31} dias';
+          localNodes.add(
+            _DemoTreeNode(
+              id: index == 0 ? 'pastor-joao' : 'pastor-$index',
+              name: name,
+              detail: detail,
+              image: photos[index % photos.length],
+              level: _DemoTreeLevel.local,
+              detailColor: index == 2 ? AppColors.accent : AppColors.success,
+              nextDetail: index.isEven ? 'Pr\u00f3ximo cuidado: 18/09' : null,
+              warning: index == 2,
+            ),
+          );
+        }
+        final subName =
+            subRegionalLeaders[subRegionalIndex % subRegionalLeaders.length];
+        subRegionalNodes.add(
+          _DemoTreeNode(
+            id: subId,
+            name: subName,
+            detail: 'Sub-regional \u00b7 ${over.$5[regionIndex]}',
+            image: photos[(subRegionalIndex + 2) % photos.length],
+            level: _DemoTreeLevel.subRegional,
+            children: localNodes,
+          ),
+        );
+        subRegionalIndex++;
+      }
+      final regionalName = regionalLeaders[regionalIndex++];
+      regionalNodes.add(
+        _DemoTreeNode(
+          id: regionId,
+          name: regionalName,
+          detail: 'Regional \u00b7 ${over.$5[regionIndex]}',
+          image: photos[(regionalIndex + 1) % photos.length],
+          level: _DemoTreeLevel.regional,
+          children: subRegionalNodes,
+        ),
+      );
+    }
+    overRegionalNodes.add(
+      _DemoTreeNode(
+        id: over.$1,
+        name: over.$2,
+        detail: 'Sobre-regional \u00b7 ${over.$3}',
+        image: over.$4,
+        level: _DemoTreeLevel.overRegional,
+        children: regionalNodes,
+      ),
+    );
+  }
+
+  return _DemoTreeNode(
+    id: 'presidente',
+    name: 'Pr. Carlos Mendes',
+    detail: 'Presidente \u00b7 Igreja Monte Carmo',
+    image: 'assets/images/pastor_carlos.png',
+    level: _DemoTreeLevel.president,
+    children: overRegionalNodes,
+  );
+}
 
 class _ExpandableTreeLayoutNode {
   const _ExpandableTreeLayoutNode(this.position, this.node);

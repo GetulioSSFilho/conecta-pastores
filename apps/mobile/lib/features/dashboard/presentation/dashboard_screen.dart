@@ -98,35 +98,42 @@ class DashboardScreen extends ConsumerWidget {
   ];
 
   List<Widget> _adminSections(WindowSize size) => [
+    const _AdminTreePreview(),
     const _AdminKpis(includeGlobal: true),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
-      left: const _AdminTreePreview(),
-      right: const _AdminInsights(),
-    ),
-    _TwoColumns(
-      enabled: size.isAtLeastMedium,
-      left: const _CareActivitySection(),
-      right: const _CountriesSection(),
+      left: const _AdminInsights(),
+      right: const _CareActivitySection(),
     ),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
       left: const _AttentionSection(),
-      right: const _AnnouncementsSection(),
+      right: const _CountriesSection(),
+    ),
+    _TwoColumns(
+      enabled: size.isAtLeastMedium,
+      left: const _AnnouncementsSection(),
+      right: const _NextCommitmentSection(),
     ),
   ];
 
   List<Widget> _managerSections(WindowSize size) => [
+    const _AdminTreePreview(),
     const _AdminKpis(includeGlobal: false),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
-      left: const _AdminTreePreview(),
-      right: const _AdminInsights(),
+      left: const _AdminInsights(),
+      right: const _CareActivitySection(),
     ),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
-      left: const _CareActivitySection(),
-      right: const _AttentionSection(),
+      left: const _AttentionSection(),
+      right: const _CountriesSection(),
+    ),
+    _TwoColumns(
+      enabled: size.isAtLeastMedium,
+      left: const _AnnouncementsSection(),
+      right: const _NextCommitmentSection(),
     ),
   ];
 
@@ -591,44 +598,70 @@ class _AdminKpiCard extends StatelessWidget {
     return AppCard(
       color: item.color,
       onTap: () => context.go(item.path),
-      padding: const EdgeInsets.all(AppTokens.space16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTokens.space12,
+        vertical: 10,
+      ),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(item.icon, color: item.valueColor, size: 20),
-              const Spacer(),
-              const Icon(
-                Icons.arrow_outward_rounded,
-                color: AppColors.mutedInk,
-                size: 16,
-              ),
-            ],
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.62),
+              borderRadius: BorderRadius.circular(AppTokens.radius8),
+            ),
+            child: Icon(item.icon, color: item.valueColor, size: 19),
           ),
-          const SizedBox(height: AppTokens.space12),
-          Text(
-            item.value,
-            style: TextStyle(
-              color: item.valueColor,
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              height: 1,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      item.value,
+                      style: TextStyle(
+                        color: item.valueColor,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(width: AppTokens.space8),
+                    Expanded(
+                      child: Text(
+                        item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  item.detail,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.mutedInk,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppTokens.space4),
-          Text(
-            item.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            item.detail,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.mutedInk, fontSize: 12),
+          const SizedBox(width: AppTokens.space8),
+          const Icon(
+            Icons.arrow_outward_rounded,
+            color: AppColors.mutedInk,
+            size: 16,
           ),
         ],
       ),
