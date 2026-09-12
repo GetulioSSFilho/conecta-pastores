@@ -62,6 +62,14 @@ rota no `app_router.dart`, depois `flutter analyze`, `flutter test` e build.
    e escopos (`/admin/scopes/users/:id`) ainda não tem tela.
 4. Push/FCM (`FCM_ENABLED=false`) e check-in por QR Code em eventos.
 
+## Decisão de rumo — 2026-09-12
+
+O produto está integrado ponta a ponta, mas o dono do projeto ainda está na fase
+de **ideia**: a partir daqui, **integração está congelada**. Não inicie novos
+endpoints nem novas integrações por conta própria; o trabalho é iterar telas,
+fluxo e conteúdo em cima do que já existe (os dados fictícios vêm do seed).
+Primeiro commit do repositório: `11bd5d0`.
+
 ## Regras que não podem ser quebradas
 
 1. **Autorização é do servidor.** Esconder botão não é segurança: toda listagem
