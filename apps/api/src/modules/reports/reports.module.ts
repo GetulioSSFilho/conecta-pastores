@@ -3,5 +3,5 @@ import { ReportsController } from './reports.controller';
 import { DashboardService } from './dashboard.service';
 
 /** Modulo reservado para dashboards e relatorios com escopo server-side. */
-@Module({ controllers: [ReportsController], providers: [DashboardService] })
+@Module({ controllers: [ReportsController], providers: [DashboardService], exports: [DashboardService] })
 export class ReportsModule {}

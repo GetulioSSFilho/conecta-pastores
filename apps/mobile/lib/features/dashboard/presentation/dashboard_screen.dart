@@ -79,6 +79,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   List<Widget> _leaderSections(WindowSize size) => [
+    const _AiLaunchCard(),
     const _LeaderMetrics(),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
@@ -99,6 +100,7 @@ class DashboardScreen extends ConsumerWidget {
 
   List<Widget> _adminSections(WindowSize size) => [
     const _AdminTreePreview(),
+    const _AiLaunchCard(),
     const _AdminKpis(includeGlobal: true),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
@@ -119,6 +121,7 @@ class DashboardScreen extends ConsumerWidget {
 
   List<Widget> _managerSections(WindowSize size) => [
     const _AdminTreePreview(),
+    const _AiLaunchCard(),
     const _AdminKpis(includeGlobal: false),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
@@ -140,6 +143,7 @@ class DashboardScreen extends ConsumerWidget {
   // Ordem do desenho: o compromisso mais proximo, o que a lideranca comunicou,
   // os atalhos do proprio ministerio e, por fim, como pedir ajuda.
   List<Widget> _pastorSections(WindowSize size, AuthUser user) => [
+    const _AiLaunchCard(),
     _TwoColumns(
       enabled: size.isAtLeastMedium,
       left: const _NextCommitmentSection(),
@@ -148,6 +152,36 @@ class DashboardScreen extends ConsumerWidget {
     const _MinistrySection(),
     const _HelpCard(),
   ];
+}
+
+class _AiLaunchCard extends StatelessWidget {
+  const _AiLaunchCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      color: AppColors.softPrimary,
+      padding: const EdgeInsets.symmetric(horizontal: AppTokens.space16, vertical: AppTokens.space12),
+      onTap: () => context.go('/assistant'),
+      child: Row(
+        children: [
+          const Icon(Icons.auto_awesome_rounded, color: AppColors.primary, size: 22),
+          const SizedBox(width: AppTokens.space12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Copiloto pastoral', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
+                SizedBox(height: 2),
+                Text('Veja prioridades e ideias práticas para hoje.', style: TextStyle(color: AppColors.mutedInk, fontSize: 12)),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_rounded, color: AppColors.primary, size: 19),
+        ],
+      ),
+    );
+  }
 }
 
 // -----------------------------------------------------------------------------

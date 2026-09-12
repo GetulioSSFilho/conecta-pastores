@@ -31,6 +31,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ReportsModule } from './modules/reports/reports.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { UsersModule } from './modules/users/users.module';
+import { AiModule } from './modules/ai/ai.module';
 
 /**
  * Raiz da aplicacao.
@@ -96,6 +97,7 @@ import { UsersModule } from './modules/users/users.module';
     HealthModule,
 
     UsersModule,
+    AiModule,
     GeographyModule,
     ChurchesModule,
     PastorsModule,

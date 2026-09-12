@@ -42,6 +42,14 @@ final appDestinations = <AppDestination>[
     group: NavGroup.main,
     visibleFor: _always,
   ),
+  const AppDestination(
+    path: '/assistant',
+    label: 'Assistente IA',
+    icon: Icons.auto_awesome_outlined,
+    selectedIcon: Icons.auto_awesome_rounded,
+    group: NavGroup.main,
+    visibleFor: _always,
+  ),
   AppDestination(
     path: '/network',
     label: 'Minha Rede',

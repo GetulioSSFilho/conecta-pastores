@@ -203,23 +203,22 @@ class _MobileDrawer extends StatelessWidget {
                         ),
                     ],
                   ],
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(),
-                  ),
-                  _MobileDrawerTile(
-                    destination: AppDestination(
-                      path: '/settings',
-                      label: 'Configura\u00e7\u00f5es',
-                      icon: Icons.settings_outlined,
-                      selectedIcon: Icons.settings_rounded,
-                      group: NavGroup.management,
-                      visibleFor: (_) => true,
-                    ),
-                    selected: location.startsWith('/settings'),
-                  ),
                 ],
               ),
+            ),
+            const Divider(height: 1),
+            // Fica fora da lista rolavel para permanecer acessivel mesmo
+            // quando a conta tem muitos destinos no menu.
+            _MobileDrawerTile(
+              destination: AppDestination(
+                path: '/settings',
+                label: 'Configura\u00e7\u00f5es',
+                icon: Icons.settings_outlined,
+                selectedIcon: Icons.settings_rounded,
+                group: NavGroup.management,
+                visibleFor: (_) => true,
+              ),
+              selected: location.startsWith('/settings'),
             ),
             const Divider(height: 1),
             Padding(
