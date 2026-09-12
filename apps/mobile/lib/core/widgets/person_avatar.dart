@@ -31,6 +31,9 @@ class PersonAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final url = photoUrl;
+    final isAsset =
+        url != null &&
+        (url.startsWith('assets/') || url.startsWith('/assets/'));
     return Semantics(
       image: true,
       label: name,
@@ -39,7 +42,9 @@ class PersonAvatar extends StatelessWidget {
         radius: size / 2,
         backgroundColor: color.withValues(alpha: 0.12),
         foregroundImage: url != null && url.isNotEmpty
-            ? NetworkImage(url)
+            ? isAsset
+                  ? AssetImage(url)
+                  : NetworkImage(url)
             : null,
         onForegroundImageError: url != null && url.isNotEmpty
             ? (_, _) {}

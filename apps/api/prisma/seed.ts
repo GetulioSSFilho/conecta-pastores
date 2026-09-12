@@ -126,7 +126,7 @@ const COUNTRIES = [
 /** Regioes com cidades e coordenadas reais aproximadas (base para o mapa). */
 const REGIONS = [
   { country: 'BR', code: 'BR-MG', name: 'Minas Gerais', cities: [['Belo Horizonte', -19.9167, -43.9345], ['Betim', -19.9678, -44.1983], ['Contagem', -19.9317, -44.0536], ['Uberlândia', -18.9186, -48.2772]] },
-  { country: 'BR', code: 'BR-MG-RMBH', name: 'Região Metropolitana de Belo Horizonte', parent: 'BR-MG', cities: [['Nova Lima', -19.9858, -43.8467], ['Sabará', -19.8886, -43.8069]] },
+  { country: 'BR', code: 'BR-MG-RMBH', name: 'Região Metropolitana de Belo Horizonte', parent: 'BR-MG', cities: [['Betim', -19.9678, -44.1983], ['Contagem', -19.9317, -44.0536]] },
   { country: 'BR', code: 'BR-SP', name: 'São Paulo', cities: [['São Paulo', -23.5505, -46.6333], ['Campinas', -22.9099, -47.0626], ['Santos', -23.9608, -46.3336]] },
   { country: 'BR', code: 'BR-RJ', name: 'Rio de Janeiro', cities: [['Rio de Janeiro', -22.9068, -43.1729], ['Niterói', -22.8832, -43.1034]] },
   { country: 'BR', code: 'BR-BA', name: 'Bahia', cities: [['Salvador', -12.9777, -38.5016], ['Feira de Santana', -12.2664, -38.9663]] },
@@ -320,18 +320,19 @@ async function main(): Promise<void> {
   // Distribui 30 igrejas: sede por região + campus/congregações nas maiores.
   const extraPerRegion: Record<string, number> = { 'BR-MG': 4, 'BR-SP': 3, 'BR-RJ': 2, 'BR-BA': 1, 'BR-PR': 1, 'PT-11': 1, 'US-FL': 1, 'AO-LUA': 1, 'BR-MG-RMBH': 1, 'MZ-MPM': 1, 'US-MA': 1 };
   const mainChurchNames: Record<string, string> = {
-    'BR-MG': 'Igreja Monte Carmo',
-    'BR-SP': 'Igreja Esperança Viva',
-    'BR-RJ': 'Igreja da Ponte',
-    'BR-BA': 'Igreja Vida Plena',
-    'BR-PR': 'Comunidade da Graça',
-    'BR-DF': 'Comunidade do Caminho',
-    'PT-11': 'Igreja Esperança de Lisboa',
-    'PT-13': 'Igreja Porto da Graça',
-    'US-FL': 'Igreja Vida em Orlando',
-    'US-MA': 'Comunidade Brasileira de Boston',
-    'AO-LUA': 'Igreja Fonte de Vida',
-    'MZ-MPM': 'Igreja Caminho de Maputo',
+    'BR-MG': 'Lagoinha Matriz',
+    'BR-MG-RMBH': 'Lagoinha Betim',
+    'BR-SP': 'Lagoinha Barra Funda',
+    'BR-RJ': 'Lagoinha Duque de Caxias',
+    'BR-BA': 'Lagoinha Salvador',
+    'BR-PR': 'Lagoinha Curitiba',
+    'BR-DF': 'Lagoinha Brasília',
+    'PT-11': 'Lagoinha Lisboa',
+    'PT-13': 'Lagoinha Porto',
+    'US-FL': 'Lagoinha Orlando',
+    'US-MA': 'Lagoinha Boston',
+    'AO-LUA': 'Lagoinha Luanda',
+    'MZ-MPM': 'Lagoinha Maputo',
   };
   for (const r of REGIONS) {
     const country = COUNTRIES.find((c) => c.code === r.country)!;
@@ -381,6 +382,7 @@ async function main(): Promise<void> {
       first?: string;
       last?: string;
       female?: boolean;
+      photoUrl?: string;
       roleKey: string;
       status?: PastorStatus;
       title?: string;
@@ -398,8 +400,8 @@ async function main(): Promise<void> {
         firstName: first,
         lastName: last,
         pastoralName: `${prefix} ${first} ${last.split(' ')[0]}`,
-        // Sem foto externa: o app usa iniciais. Evita dependencia de rede e bloqueio de CORS.
-        photoUrl: null,
+        // Fotos do mock ficam no bundle web; em produção virão do cadastro/S3.
+        photoUrl: opts.photoUrl ?? null,
         email: faker.internet.email({ firstName: first, lastName: last.split(' ')[0], provider: 'pastoral.dev' }).toLowerCase(),
         phoneE164: `+${country.phoneCode}${faker.string.numeric(church.countryCode === 'BR' ? 11 : 9)}`,
         whatsappE164: `+${country.phoneCode}${faker.string.numeric(church.countryCode === 'BR' ? 11 : 9)}`,
@@ -432,12 +434,13 @@ async function main(): Promise<void> {
 
   // Topo
   const globalLeader = await createPastor(mainChurchOf('BR-MG'), {
-    first: 'Samuel',
-    last: 'Andrade Rocha',
+    first: 'André',
+    last: 'Valadão',
     female: false,
     roleKey: 'SENIOR_PASTOR',
-    title: 'Bispo',
-    biography: 'Coordena a visão pastoral da rede e acompanha as lideranças nacionais, promovendo unidade e cuidado entre as igrejas.',
+    title: 'Pastor presidente',
+    photoUrl: 'assets/images/mock_pastores/andre_valadao.jpg',
+    biography: 'Pastor presidente da Lagoinha Global, conduz a visão da rede e acompanha a expansão das igrejas no Brasil e nas nações.',
   });
 
   // Lideres nacionais
@@ -516,7 +519,7 @@ async function main(): Promise<void> {
       female: false,
       roleKey: 'ASSOCIATE_PASTOR',
       title: 'Pastor titular',
-      biography: 'Serve na Igreja Monte Carmo com foco em pregação, discipulado e cuidado das famílias da comunidade.',
+      biography: 'Serve na Lagoinha Betim com foco em pregação, discipulado e cuidado das famílias da comunidade.',
     },
     {
       first: 'Ana',
@@ -606,9 +609,10 @@ async function main(): Promise<void> {
     roleKey: string,
     scopes: Array<{ type: ScopeType; refId?: string }>,
     pastor?: PastorSeed,
+    avatarUrl?: string,
   ) => {
     const user = await prisma.user.create({
-      data: { email, firstName, lastName, passwordHash, status: UserStatus.ACTIVE, locale: 'pt-BR', timezone: 'America/Sao_Paulo' },
+      data: { email, firstName, lastName, passwordHash, avatarUrl, status: UserStatus.ACTIVE, locale: 'pt-BR', timezone: 'America/Sao_Paulo' },
     });
     await prisma.userRole.create({ data: { userId: user.id, roleId: roleIdByKey.get(roleKey)! } });
     await prisma.userScope.createMany({ data: scopes.map((s) => ({ userId: user.id, type: s.type, refId: s.refId ?? null })) });
@@ -616,7 +620,15 @@ async function main(): Promise<void> {
     return user;
   };
 
-  const admin = await createUser('admin@pastoral.dev', 'Samuel', 'Andrade', SYSTEM_ROLES.GLOBAL_ADMIN, [{ type: ScopeType.GLOBAL }], globalLeader);
+  const admin = await createUser(
+    'admin@pastoral.dev',
+    'André',
+    'Valadão',
+    SYSTEM_ROLES.GLOBAL_ADMIN,
+    [{ type: ScopeType.GLOBAL }],
+    globalLeader,
+    'assets/images/mock_pastores/andre_valadao.jpg',
+  );
   const national = await createUser('nacional@pastoral.dev', 'Marcos', 'Oliveira', SYSTEM_ROLES.NATIONAL_LEADER, [
     { type: ScopeType.COUNTRY, refId: countryIdByCode.get('BR') },
     { type: ScopeType.SUBTREE },
@@ -724,7 +736,7 @@ async function main(): Promise<void> {
     { type: PostType.DEVOTIONAL, title: 'Devocional: descanso no ministério', summary: 'Uma reflexão sobre Marcos 6:31.', pinned: false, ack: false },
     { type: PostType.NEWS, title: 'Nova igreja plantada em Salvador', summary: 'Celebramos a abertura da congregação.', pinned: false, ack: false },
     { type: PostType.EVENT, title: 'Conferência de liderança — Lisboa', summary: 'Evento internacional em novembro.', pinned: false, ack: false },
-    { type: PostType.VIDEO, title: 'Mensagem do Bispo Samuel', summary: 'Vídeo com orientações para o semestre.', pinned: false, ack: false },
+    { type: PostType.VIDEO, title: 'Mensagem do Pr. André Valadão', summary: 'Vídeo com orientações para o semestre.', pinned: false, ack: false },
     { type: PostType.DOCUMENT, title: 'Manual de cuidado pastoral', summary: 'Documento de referência atualizado.', pinned: false, ack: false },
   ];
   for (const [i, p] of posts.entries()) {

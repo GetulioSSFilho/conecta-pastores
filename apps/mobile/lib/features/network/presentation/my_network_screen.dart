@@ -642,10 +642,10 @@ class _TreeGraph extends StatelessWidget {
                       child: const _TreePersonCard(
                         width: rootWidth,
                         height: rootHeight,
-                        name: 'Pr. Carlos Mendes',
-                        detail: 'Líder regional · MG',
+                        name: 'Pr. André Valadão',
+                        detail: 'Presidente · Lagoinha Global',
                         detailColor: AppColors.primary,
-                        image: 'assets/images/pastor_carlos.png',
+                        image: 'assets/images/mock_pastores/andre_valadao.jpg',
                         emphasized: true,
                       ),
                     ),
@@ -655,10 +655,11 @@ class _TreeGraph extends StatelessWidget {
                       child: const _TreePersonCard(
                         width: branchWidth,
                         height: branchHeight,
-                        name: 'Pr. Paulo Ribeiro',
-                        detail: 'Supervisor · RMBH',
+                        name: 'Pr. Rodinei Medeiros',
+                        detail: 'Sobre-regional · Betim e RMBH',
                         detailColor: AppColors.primary,
-                        image: 'assets/images/pastor_joao.png',
+                        image:
+                            'assets/images/mock_pastores/rodinei_medeiros.jpg',
                       ),
                     ),
                     Positioned(
@@ -1171,9 +1172,9 @@ _DemoTreeNode _completeDemoTree() {
   const overRegions = [
     (
       'sobre-sudeste',
-      'Pr. Paulo Ribeiro',
-      'Sudeste',
-      'assets/images/pastor_joao.png',
+      'Pr. Rodinei Medeiros',
+      'Betim e RMBH',
+      'assets/images/mock_pastores/rodinei_medeiros.jpg',
       ['RMBH', 'Vale do Aço', 'Triângulo'],
     ),
     (
@@ -1265,6 +1266,31 @@ _DemoTreeNode _completeDemoTree() {
     'Teixeira',
     'Pereira',
   ];
+  const knownNames = [
+    'Pr. João Silva',
+    'Pra. Ana Souza',
+    'Pr. Eduardo Camilo',
+    'Pra. Ana Carolina',
+    'Pr. Cledson Silveira',
+    'Pr. Natan',
+    'Pr. Euler',
+    'Pr. Wellington',
+  ];
+  const localChurches = [
+    'Lagoinha Betim · Betim-MG',
+    'Lagoinha PTB · Betim-MG',
+    'Lagoinha Marimbá · Betim-MG',
+    'Lagoinha Citrolândia · Betim-MG',
+    'Lagoinha Monte Carmo · Betim-MG',
+    'Lagoinha Matriz · Belo Horizonte-MG',
+    'Lagoinha Duque de Caxias · Rio de Janeiro-RJ',
+    'Lagoinha Orlando · Orlando-EUA',
+    'Lagoinha Lisboa · Odivelas-Portugal',
+    'Lagoinha Barra Funda · São Paulo-SP',
+    'Lagoinha Americana · Americana-SP',
+    'Lagoinha Costa Rica · Costa Rica-MS',
+    'Lagoinha Fernão Dias · Belo Horizonte-MG',
+  ];
   var pastorIndex = 0;
   var photoIndex = 0;
   String nextPhoto() => DemoPastorPhotos.tree(photoIndex++);
@@ -1290,22 +1316,17 @@ _DemoTreeNode _completeDemoTree() {
         final localCount = subRegionalIndex < 13 ? 5 : 4;
         for (var localIndex = 0; localIndex < localCount; localIndex++) {
           final index = pastorIndex++;
-          final knownNames = const [
-            'Pr. Jo\u00e3o Silva',
-            'Pra. Ana Souza',
-            'Pr. Marcos Lima',
-            'Pr. Eduardo Costa',
-          ];
           final name = index < knownNames.length
               ? knownNames[index]
               : '${index.isEven ? 'Pr.' : 'Pra.'} '
                     '${localFirstNames[(index - 4) % localFirstNames.length]} '
                     '${localSurnames[(index - 4) ~/ localFirstNames.length % localSurnames.length]}';
+          final church = localChurches[index % localChurches.length];
           final detail = index == 2
-              ? 'Pastor local \u00b7 54 dias'
+              ? 'Pastor local \u00b7 $church \u00b7 54 dias'
               : index == 3
-              ? 'Pastor local \u00b7 agenda em dia'
-              : 'Pastor local \u00b7 ${8 + (index * 3) % 31} dias';
+              ? 'Pastor local \u00b7 $church \u00b7 agenda em dia'
+              : 'Pastor local \u00b7 $church \u00b7 ${8 + (index * 3) % 31} dias';
           localNodes.add(
             _DemoTreeNode(
               id: index == 0 ? 'pastor-joao' : 'pastor-$index',
@@ -1350,7 +1371,7 @@ _DemoTreeNode _completeDemoTree() {
         id: over.$1,
         name: over.$2,
         detail: 'Sobre-regional \u00b7 ${over.$3}',
-        image: nextPhoto(),
+        image: over.$4,
         level: _DemoTreeLevel.overRegional,
         children: regionalNodes,
       ),
@@ -1359,9 +1380,9 @@ _DemoTreeNode _completeDemoTree() {
 
   return _DemoTreeNode(
     id: 'presidente',
-    name: 'Pr. Carlos Mendes',
-    detail: 'Presidente \u00b7 Igreja Monte Carmo',
-    image: nextPhoto(),
+    name: 'Pr. Andr\u00e9 Valad\u00e3o',
+    detail: 'Presidente \u00b7 Lagoinha Global',
+    image: 'assets/images/mock_pastores/andre_valadao.jpg',
     level: _DemoTreeLevel.president,
     children: overRegionalNodes,
   );

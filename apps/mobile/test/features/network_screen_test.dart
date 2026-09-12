@@ -55,8 +55,8 @@ void main() {
     expect(find.text('Todos'), findsOneWidget);
     expect(find.text('> 30 dias'), findsOneWidget);
     expect(find.text('Esta semana'), findsOneWidget);
-    expect(find.text('Pr. Carlos Mendes'), findsOneWidget);
-    expect(find.text('Pr. Paulo Ribeiro'), findsOneWidget);
+    expect(find.text('Pr. André Valadão'), findsOneWidget);
+    expect(find.text('Pr. Rodinei Medeiros'), findsOneWidget);
     expect(find.text('Pra. Renata Almeida'), findsOneWidget);
     expect(find.text('Regional · RMBH'), findsNothing);
     expect(find.byType(InteractiveViewer), findsOneWidget);
@@ -67,7 +67,7 @@ void main() {
     expect(find.byTooltip('Aumentar zoom'), findsOneWidget);
     expect(find.byTooltip('Diminuir zoom'), findsOneWidget);
     expect(find.byTooltip('Redefinir zoom'), findsOneWidget);
-    await tester.tap(find.bySemanticsLabel('Expandir Pr. Paulo Ribeiro'));
+    await tester.tap(find.bySemanticsLabel('Expandir Pr. Rodinei Medeiros'));
     await tester.pumpAndSettle();
     expect(find.text('Regional · RMBH'), findsOneWidget);
     expect(find.bySemanticsLabel('Expandir Pr. João Silva'), findsOneWidget);
