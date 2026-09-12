@@ -8,6 +8,7 @@ import 'package:pastoral_app/features/network/data/network_providers.dart';
 import 'package:pastoral_app/features/network/domain/network_member.dart';
 import 'package:pastoral_app/features/network/presentation/my_network_screen.dart';
 import 'package:pastoral_app/features/pastors/presentation/widgets/pastor_list_tile.dart';
+import 'package:pastoral_app/features/profile/presentation/demo_pastor_profile_screen.dart';
 
 Widget _app() {
   final router = GoRouter(
@@ -16,6 +17,14 @@ Widget _app() {
       GoRoute(
         path: '/network',
         builder: (context, state) => const Scaffold(body: MyNetworkScreen()),
+      ),
+      GoRoute(
+        path: '/pastors/:id',
+        builder: (context, state) => DemoPastorProfileScreen(
+          name: state.uri.queryParameters['name'] ?? 'Pastor',
+          detail: state.uri.queryParameters['detail'] ?? 'Demonstração',
+          image: state.uri.queryParameters['image'],
+        ),
       ),
     ],
   );
@@ -71,6 +80,27 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Regional · RMBH'), findsOneWidget);
     expect(find.bySemanticsLabel('Expandir Pr. João Silva'), findsOneWidget);
+  });
+
+  testWidgets('tocar na foto abre o perfil da pessoa', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.ancestor(
+        of: find.text('Pr. Rodinei Medeiros'),
+        matching: find.byType(InkWell),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DemoPastorProfileScreen), findsOneWidget);
+    expect(find.text('Pr. Rodinei Medeiros'), findsOneWidget);
+    expect(find.text('Sobre-regional'), findsNWidgets(2));
   });
 
   testWidgets('indicadores longos da lista não causam overflow no celular', (

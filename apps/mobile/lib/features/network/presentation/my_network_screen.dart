@@ -957,6 +957,7 @@ class _ExpandableTreeGraphState extends ConsumerState<_ExpandableTreeGraph> {
                     child: _ExpandableTreePersonCard(
                       node: item.node,
                       expanded: _expanded.contains(item.node.id),
+                      onTap: () => _openNodeProfile(item.node),
                       onToggle: () => setState(() {
                         if (!_expanded.add(item.node.id)) {
                           _expanded.remove(item.node.id);
@@ -978,6 +979,19 @@ class _ExpandableTreeGraphState extends ConsumerState<_ExpandableTreeGraph> {
       return node.nextDetail!;
     }
     return node.detail;
+  }
+
+  void _openNodeProfile(_DemoTreeNode node) {
+    final uri = Uri(
+      path: '/pastors/${node.id}',
+      queryParameters: {
+        'demo': '1',
+        'name': node.name,
+        'detail': _treeDetail(node),
+        'image': node.image,
+      },
+    );
+    context.push(uri.toString());
   }
 }
 
@@ -1502,12 +1516,14 @@ class _ExpandableTreePersonCard extends StatelessWidget {
   const _ExpandableTreePersonCard({
     required this.node,
     required this.expanded,
+    required this.onTap,
     required this.onToggle,
     required this.detail,
   });
 
   final _DemoTreeNode node;
   final bool expanded;
+  final VoidCallback onTap;
   final VoidCallback onToggle;
   final String detail;
 
@@ -1527,6 +1543,7 @@ class _ExpandableTreePersonCard extends StatelessWidget {
             image: node.image,
             emphasized: node.level == _DemoTreeLevel.president,
             warning: node.warning,
+            onTap: onTap,
           ),
           if (node.children.isNotEmpty)
             Positioned(
@@ -1676,6 +1693,7 @@ class _TreePersonCard extends StatelessWidget {
     this.initials,
     this.emphasized = false,
     this.warning = false,
+    this.onTap,
   });
 
   final double width;
@@ -1687,6 +1705,7 @@ class _TreePersonCard extends StatelessWidget {
   final String? initials;
   final bool emphasized;
   final bool warning;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1695,73 +1714,85 @@ class _TreePersonCard extends StatelessWidget {
       elevation: 2,
       shadowColor: AppColors.primary.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(AppTokens.radius16),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.space12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppTokens.radius16),
+        child: Semantics(
+          button: onTap != null,
+          label: onTap == null ? null : 'Abrir perfil de $name',
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: Padding(
+              padding: const EdgeInsets.all(AppTokens.space12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircleAvatar(
-                    radius: emphasized ? 28 : 24,
-                    backgroundColor: AppColors.softPrimary,
-                    foregroundImage: image == null
-                        ? null
-                        : _treeImageProvider(image!),
-                    onForegroundImageError: image == null ? null : (_, _) {},
-                    child: Text(
-                      initials ?? _initials(name),
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  if (warning)
-                    const Positioned(
-                      right: -5,
-                      bottom: -2,
-                      child: CircleAvatar(
-                        radius: 10,
-                        backgroundColor: AppColors.accent,
-                        child: Icon(
-                          Icons.priority_high_rounded,
-                          color: Colors.white,
-                          size: 13,
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        radius: emphasized ? 28 : 24,
+                        backgroundColor: AppColors.softPrimary,
+                        foregroundImage: image == null
+                            ? null
+                            : _treeImageProvider(image!),
+                        onForegroundImageError: image == null
+                            ? null
+                            : (_, _) {},
+                        child: Text(
+                          initials ?? _initials(name),
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
+                      if (warning)
+                        const Positioned(
+                          right: -5,
+                          bottom: -2,
+                          child: CircleAvatar(
+                            radius: 10,
+                            backgroundColor: AppColors.accent,
+                            child: Icon(
+                              Icons.priority_high_rounded,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppTokens.space8),
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.ink,
+                      fontWeight: emphasized
+                          ? FontWeight.w800
+                          : FontWeight.w700,
+                      fontSize: emphasized ? 14 : 13,
                     ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    detail,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: detailColor,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: AppTokens.space8),
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.ink,
-                  fontWeight: emphasized ? FontWeight.w800 : FontWeight.w700,
-                  fontSize: emphasized ? 14 : 13,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                detail,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: detailColor,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

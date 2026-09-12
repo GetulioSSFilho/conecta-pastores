@@ -26,6 +26,7 @@ import '../../features/notifications/presentation/notification_center_screen.dar
 import '../../features/pastors/presentation/pastor_form_screen.dart';
 import '../../features/pastors/presentation/pastor_directory_screen.dart';
 import '../../features/profile/presentation/pastor_profile_screen.dart';
+import '../../features/profile/presentation/demo_pastor_profile_screen.dart';
 import '../../features/reports/presentation/reports_dashboard_screen.dart';
 import '../../features/requests/presentation/request_detail_screen.dart';
 import '../../features/requests/presentation/request_form_screen.dart';
@@ -118,11 +119,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           _page('/network', (context, state) => const MyNetworkScreen()),
           _page('/pastors', (context, state) => const PastorDirectoryScreen()),
           _page('/pastors/new', (context, state) => const PastorFormScreen()),
-          _page(
-            '/pastors/:id',
-            (context, state) =>
-                PastorProfileScreen(pastorId: state.pathParameters['id']!),
-          ),
+          _page('/pastors/:id', (context, state) {
+            final id = state.pathParameters['id']!;
+            final query = state.uri.queryParameters;
+            if (query['demo'] == '1') {
+              return DemoPastorProfileScreen(
+                name: query['name'] ?? 'Pastor',
+                detail: query['detail'] ?? 'Perfil de demonstração',
+                image: query['image'],
+              );
+            }
+            return PastorProfileScreen(pastorId: id);
+          }),
           _page('/churches', (context, state) => const ChurchesListScreen()),
           _page('/churches/new', (context, state) => const ChurchFormScreen()),
           _page(
