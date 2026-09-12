@@ -6,6 +6,7 @@ import '../../core/responsive/breakpoints.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/widgets/app_brand.dart';
+import '../../core/widgets/person_avatar.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/domain/auth_user.dart';
 import '../../features/ai/presentation/assistant_screen.dart';
@@ -156,14 +157,14 @@ class _MobileMenuBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-class _MobileDrawer extends StatelessWidget {
+class _MobileDrawer extends ConsumerWidget {
   const _MobileDrawer({required this.user, required this.location});
 
   final AuthUser user;
   final String location;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final destinations = destinationsFor(user);
     return Drawer(
       child: SafeArea(
@@ -241,6 +242,18 @@ class _MobileDrawer extends StatelessWidget {
               ),
               selected: location.startsWith('/settings'),
             ),
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.logout_rounded, color: AppColors.alert),
+              title: const Text(
+                'Sair',
+                style: TextStyle(color: AppColors.alert),
+              ),
+              onTap: () async {
+                Navigator.of(context).pop();
+                await ref.read(authControllerProvider.notifier).logout();
+              },
+            ),
             const Divider(height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
@@ -300,14 +313,14 @@ class _MobileDrawerTile extends StatelessWidget {
 // Sidebar (expanded)
 // -----------------------------------------------------------------------------
 
-class _Sidebar extends StatelessWidget {
+class _Sidebar extends ConsumerWidget {
   const _Sidebar({required this.user, required this.location});
 
   final AuthUser user;
   final String location;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final destinations = destinationsFor(user);
     return Container(
       width: 256,
@@ -376,6 +389,30 @@ class _Sidebar extends StatelessWidget {
               ),
               selected: location.startsWith('/settings'),
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+              child: ListTile(
+                dense: true,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppTokens.radius12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                leading: const Icon(
+                  Icons.logout_rounded,
+                  size: 20,
+                  color: AppColors.alert,
+                ),
+                title: const Text(
+                  'Sair',
+                  style: TextStyle(
+                    color: AppColors.alert,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () => ref.read(authControllerProvider.notifier).logout(),
+              ),
             ),
           ],
         ),
@@ -667,20 +704,10 @@ class UserMenuButton extends ConsumerWidget {
       ],
       child: Tooltip(
         message: 'Menu da conta',
-        child: CircleAvatar(
-          radius: 18,
-          backgroundColor: AppColors.softPrimary,
-          foregroundImage: user.avatarUrl != null
-              ? NetworkImage(user.avatarUrl!)
-              : null,
-          child: Text(
-            user.initials,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-          ),
+        child: PersonAvatar(
+          name: user.displayName,
+          photoUrl: user.avatarUrl,
+          size: 36,
         ),
       ),
     );

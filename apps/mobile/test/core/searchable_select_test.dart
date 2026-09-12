@@ -42,4 +42,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(selected, 'pt');
   });
+
+  testWidgets('select nao exibe o tipo dos widgets auxiliares', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SearchableSelectFormField<String>(
+            initialValue: 'care',
+            decoration: const InputDecoration(labelText: 'Tipo'),
+            items: [
+              DropdownMenuItem(
+                value: 'care',
+                child: Row(
+                  children: const [
+                    Icon(Icons.favorite_outline),
+                    SizedBox(width: 8),
+                    Text('Acompanhamento'),
+                  ],
+                ),
+              ),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('SizedBox Acompanhamento'), findsNothing);
+  });
 }

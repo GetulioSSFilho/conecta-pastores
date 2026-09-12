@@ -62,10 +62,12 @@ String _textFromWidget(Widget widget) {
   if (widget is MultiChildRenderObjectWidget) {
     return widget.children.map(_textFromWidget).join(' ');
   }
-  if (widget is SingleChildRenderObjectWidget && widget.child != null) {
-    return _textFromWidget(widget.child!);
+  if (widget is SingleChildRenderObjectWidget) {
+    // Espaçadores e containers sem filho não devem vazar o tipo do widget
+    // para o texto selecionado (ex.: "SizedBox Acompanhamento").
+    return widget.child == null ? '' : _textFromWidget(widget.child!);
   }
-  return widget.toStringShort();
+  return '';
 }
 
 /// Menu de filtro pesquisavel usado nos chips de listagens.

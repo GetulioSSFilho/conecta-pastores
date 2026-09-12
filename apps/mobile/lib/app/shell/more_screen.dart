@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/person_avatar.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/notifications/data/notifications_providers.dart';
 import 'destinations.dart';
@@ -30,19 +31,10 @@ class MoreScreen extends ConsumerWidget {
           onTap: user.pastorId != null ? () => context.go('/profile') : null,
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: AppColors.softPrimary,
-                foregroundImage: user.avatarUrl != null
-                    ? NetworkImage(user.avatarUrl!)
-                    : null,
-                child: Text(
-                  user.initials,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+              PersonAvatar(
+                name: user.displayName,
+                photoUrl: user.avatarUrl,
+                size: 52,
               ),
               const SizedBox(width: AppTokens.space12),
               Expanded(

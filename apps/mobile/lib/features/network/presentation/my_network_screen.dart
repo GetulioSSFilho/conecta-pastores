@@ -1306,8 +1306,15 @@ _DemoTreeNode _completeDemoTree() {
     'Lagoinha Fernão Dias · Belo Horizonte-MG',
   ];
   var pastorIndex = 0;
-  var photoIndex = 0;
-  String nextPhoto() => DemoPastorPhotos.tree(photoIndex++);
+  var malePhotoIndex = 0;
+  var femalePhotoIndex = 0;
+  String nextPhoto(String name) {
+    final female = DemoPastorPhotos.isFemaleName(name);
+    return female
+        ? DemoPastorPhotos.nextFemalePhoto(femalePhotoIndex++)
+        : DemoPastorPhotos.nextMalePhoto(malePhotoIndex++);
+  }
+
   var regionalIndex = 0;
   var subRegionalIndex = 0;
   final overRegionalNodes = <_DemoTreeNode>[];
@@ -1346,7 +1353,7 @@ _DemoTreeNode _completeDemoTree() {
               id: index == 0 ? 'pastor-joao' : 'pastor-$index',
               name: name,
               detail: detail,
-              image: nextPhoto(),
+              image: nextPhoto(name),
               level: _DemoTreeLevel.local,
               detailColor: index == 2 ? AppColors.accent : AppColors.success,
               nextDetail: index.isEven ? 'Pr\u00f3ximo cuidado: 18/09' : null,
@@ -1361,7 +1368,7 @@ _DemoTreeNode _completeDemoTree() {
             id: subId,
             name: subName,
             detail: 'Sub-regional \u00b7 ${over.$5[regionIndex]}',
-            image: nextPhoto(),
+            image: nextPhoto(subName),
             level: _DemoTreeLevel.subRegional,
             children: localNodes,
           ),
@@ -1374,7 +1381,7 @@ _DemoTreeNode _completeDemoTree() {
           id: regionId,
           name: regionalName,
           detail: 'Regional \u00b7 ${over.$5[regionIndex]}',
-          image: nextPhoto(),
+          image: nextPhoto(regionalName),
           level: _DemoTreeLevel.regional,
           children: subRegionalNodes,
         ),

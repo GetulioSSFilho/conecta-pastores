@@ -112,6 +112,7 @@ void main() {
     expect(find.byType(Drawer), findsOneWidget);
     expect(find.text('Pastores'), findsOneWidget);
     expect(find.text('Configurações'), findsOneWidget);
+    expect(find.text('Sair'), findsOneWidget);
     handle.dispose();
   });
 
