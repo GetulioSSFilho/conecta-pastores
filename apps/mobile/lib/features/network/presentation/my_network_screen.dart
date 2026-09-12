@@ -826,8 +826,9 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
 
   @override
   Widget build(BuildContext context) {
+    final viewportHeight = context.windowSize.isCompact ? 420.0 : 460.0;
     return SizedBox(
-      height: 540,
+      height: viewportHeight,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppTokens.radius12),
         child: Stack(
