@@ -8,6 +8,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/widgets/app_brand.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/domain/auth_user.dart';
+import '../../features/ai/presentation/assistant_screen.dart';
 import '../../features/notifications/data/notifications_providers.dart';
 import 'destinations.dart';
 
@@ -49,6 +50,8 @@ class AppScaffold extends ConsumerWidget {
         drawer: _MobileDrawer(user: user, location: location),
         appBar: const _MobileMenuBar(),
         body: SafeArea(bottom: false, child: body),
+        floatingActionButton: const _AiFloatingButton(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         bottomNavigationBar: NavigationBar(
           selectedIndex: index >= 0 ? index : items.length,
           onDestinationSelected: (i) => context.go(
@@ -78,6 +81,8 @@ class AppScaffold extends ConsumerWidget {
     }
 
     return Scaffold(
+      floatingActionButton: const _AiFloatingButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: Row(
         children: [
           size.isExpanded
@@ -93,6 +98,22 @@ class AppScaffold extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AiFloatingButton extends StatelessWidget {
+  const _AiFloatingButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton(
+      heroTag: 'global-ai-assistant',
+      tooltip: 'Abrir assistente pastoral',
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      onPressed: () => AiAssistantSheet.show(context),
+      child: const Icon(Icons.auto_awesome_rounded),
     );
   }
 }

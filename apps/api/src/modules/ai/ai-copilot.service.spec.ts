@@ -70,4 +70,23 @@ describe('AiCopilotService', () => {
     expect(result.suggestions).toHaveLength(1);
     expect(result.suggestions[0].actionPath).toBe('/care');
   });
+
+  it('navega por intenção local apenas para áreas autorizadas', async () => {
+    const service = new AiCopilotService(
+      { isEnabled: false } as never,
+      {} as never,
+    );
+
+    const agenda = await service.navigate(
+      user({ permissions: ['event.read'] as never }),
+      'Abrir minha agenda',
+    );
+    const rede = await service.navigate(
+      user({ permissions: [] }),
+      'Quero ver minha rede',
+    );
+
+    expect(agenda.actionPath).toBe('/calendar');
+    expect(rede.actionPath).toBeNull();
+  });
 });

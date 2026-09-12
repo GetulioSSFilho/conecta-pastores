@@ -57,3 +57,24 @@ class CopilotResult {
 
   bool get fromNvidia => source == 'nvidia-nim';
 }
+
+class AiIntentResult {
+  const AiIntentResult({
+    required this.reply,
+    required this.actionPath,
+    required this.source,
+    this.model,
+  });
+
+  factory AiIntentResult.fromJson(Map<String, dynamic> json) => AiIntentResult(
+    reply: json['reply'] as String? ?? 'Não consegui interpretar esse pedido.',
+    actionPath: json['actionPath'] as String?,
+    source: json['source'] as String? ?? 'local',
+    model: json['model'] as String?,
+  );
+
+  final String reply;
+  final String? actionPath;
+  final String source;
+  final String? model;
+}

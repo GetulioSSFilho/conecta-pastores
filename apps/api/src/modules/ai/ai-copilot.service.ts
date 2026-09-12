@@ -13,7 +13,12 @@ export interface CopilotSuggestion {
 }
 
 const ALLOWED_PATHS = new Set([
+  '/dashboard',
+  '/assistant',
   '/care',
+  '/channel',
+  '/churches',
+  '/documents',
   '/network',
   '/calendar',
   '/requests',
@@ -21,6 +26,21 @@ const ALLOWED_PATHS = new Set([
   '/reports',
   '/training',
 ]);
+
+const NAVIGATION_RULES = [
+  { path: '/calendar', terms: ['agenda', 'compromisso', 'calendario', 'calendário'] },
+  { path: '/care', terms: ['acompanhamento', 'cuidado', 'visita', 'conversa pastoral'] },
+  { path: '/network', terms: ['minha rede', 'organograma', 'rede pastoral', 'liderados'] },
+  { path: '/requests', terms: ['solicitacao', 'solicitação', 'solicitacoes', 'solicitações', 'pedido', 'demanda'] },
+  { path: '/pastors', terms: ['pastores', 'diretorio', 'diretório', 'cadastro de pastor'] },
+  { path: '/reports', terms: ['relatorio', 'relatório', 'indicadores', 'insight', 'desempenho'] },
+  { path: '/training', terms: ['formacao', 'formação', 'curso', 'treinamento'] },
+  { path: '/documents', terms: ['documento', 'documentos', 'arquivo'] },
+  { path: '/churches', terms: ['igreja', 'igrejas'] },
+  { path: '/channel', terms: ['canal', 'comunicado', 'comunicados', 'noticia', 'notícia'] },
+  { path: '/assistant', terms: ['assistente', 'inteligencia artificial', 'inteligência artificial', 'ia'] },
+  { path: '/dashboard', terms: ['inicio', 'início', 'painel', 'dashboard', 'resumo'] },
+] as const;
 
 /**
  * Copiloto orientado a decisões pastorais. O contexto é montado no servidor
@@ -79,6 +99,33 @@ export class AiCopilotService {
     }
   }
 
+  /** Interpreta um pedido curto e devolve no máximo uma rota permitida. */
+  async navigate(user: AuthenticatedUser, message: string) {
+    const allowedPaths = this.allowedPaths(user);
+    if (this.ai.isEnabled) {
+      try {
+        const completion = await this.ai.complete([
+          {
+            role: 'system',
+            content: `Você é um assistente de navegação da Plataforma Pastoral. Responda em português do Brasil. Entenda a intenção do pedido e escolha no máximo uma rota da lista PERMITIDA. Só escolha uma rota quando a pessoa pedir explicitamente para abrir, ir para, acessar ou consultar uma área da aplicação. Para pedidos de conselho, resumo ou priorização, use actionPath null. Não invente rotas. Se o pedido não for claro, use null. Retorne somente JSON no formato {"reply":"string","actionPath":"/rota ou null"}. PERMITIDA: ${allowedPaths.join(', ')}.`,
+          },
+          { role: 'user', content: message.trim().slice(0, 400) },
+        ], { jsonMode: true, maxTokens: 180 });
+        const parsed = this.ai.parseJson<{ reply?: unknown; actionPath?: unknown }>(completion.text);
+        const path = typeof parsed.actionPath === 'string' && allowedPaths.includes(parsed.actionPath) ? parsed.actionPath : null;
+        return {
+          source: 'nvidia-nim',
+          model: completion.model,
+          reply: typeof parsed.reply === 'string' ? parsed.reply.slice(0, 260) : this.replyFor(path),
+          actionPath: path,
+        };
+      } catch (error) {
+        this.logger.warn(`Navegação IA usou fallback local: ${error instanceof Error ? error.message : 'erro'}`);
+      }
+    }
+    return { source: this.ai.isEnabled ? 'local-fallback' : 'local', model: null, ...this.localNavigation(user, message, allowedPaths) };
+  }
+
   private async factsFor(user: AuthenticatedUser, role: string): Promise<Record<string, unknown>> {
     if (role === 'pastor') return { papel: role, painel: await this.dashboard.pastor(user) };
     // Um usuário administrativo pode não ter um pastor vinculado. Nesse caso
@@ -100,6 +147,61 @@ export class AiCopilotService {
     if (user.roles.includes('REGIONAL_LEADER')) return 'líder regional';
     if (user.roles.includes('SUPERVISOR')) return 'líder de pastores';
     return 'pastor';
+  }
+
+  private allowedPaths(user: AuthenticatedUser): string[] {
+    const paths = ['/dashboard', '/assistant'];
+    const permissions: Array<[string, string]> = [
+      ['/network', PERMISSIONS.NETWORK_READ],
+      ['/pastors', PERMISSIONS.PASTOR_READ],
+      ['/care', PERMISSIONS.CARE_READ],
+      ['/channel', PERMISSIONS.CHANNEL_READ],
+      ['/calendar', PERMISSIONS.EVENT_READ],
+      ['/requests', PERMISSIONS.REQUEST_READ],
+      ['/training', PERMISSIONS.TRAINING_READ],
+      ['/documents', PERMISSIONS.DOCUMENT_READ],
+      ['/churches', PERMISSIONS.CHURCH_READ],
+      ['/reports', PERMISSIONS.REPORT_READ],
+    ];
+    for (const [path, permission] of permissions) {
+      if ((user.permissions as string[]).includes(permission)) paths.push(path);
+    }
+    return paths;
+  }
+
+  private localNavigation(user: AuthenticatedUser, message: string, allowedPaths: string[]) {
+    const normalized = message
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+    const match = NAVIGATION_RULES.find((rule) =>
+      rule.terms.some((term) => normalized.includes(term.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))),
+    );
+    if (!match) {
+      return { reply: 'Posso abrir a agenda, minha rede, acompanhamentos, solicitações ou relatórios. O que você precisa?', actionPath: null };
+    }
+    if (!allowedPaths.includes(match.path)) {
+      return { reply: 'Essa área não está disponível para o seu nível de acesso. Posso ajudar com outra parte da sua rotina.', actionPath: null };
+    }
+    return { reply: this.replyFor(match.path), actionPath: match.path };
+  }
+
+  private replyFor(path: string | null): string {
+    const labels: Record<string, string> = {
+      '/dashboard': 'Abrindo seu início.',
+      '/assistant': 'Abrindo o assistente pastoral.',
+      '/calendar': 'Abrindo sua agenda.',
+      '/care': 'Abrindo os acompanhamentos do seu escopo.',
+      '/network': 'Abrindo sua rede pastoral.',
+      '/requests': 'Abrindo as solicitações disponíveis para você.',
+      '/pastors': 'Abrindo o diretório de pastores.',
+      '/reports': 'Abrindo os relatórios do seu escopo.',
+      '/training': 'Abrindo as formações disponíveis.',
+      '/documents': 'Abrindo seus documentos.',
+      '/churches': 'Abrindo as igrejas disponíveis.',
+      '/channel': 'Abrindo o canal de comunicados.',
+    };
+    return path && labels[path] ? labels[path] : 'Não encontrei uma área específica para esse pedido.';
   }
 
   private localSuggestions(role: string, facts: Record<string, unknown>): CopilotSuggestion[] {
