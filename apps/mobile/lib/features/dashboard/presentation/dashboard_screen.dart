@@ -37,10 +37,12 @@ class DashboardScreen extends ConsumerWidget {
 
     final sections = <Widget>[
       _Greeting(user: user, showActions: size.isCompact),
-      if (user.isLeader)
-        ..._leaderSections(size)
-      else
-        ..._pastorSections(size, user),
+      ...switch (_dashboardRole(user)) {
+        _DashboardRole.president => _adminSections(size, user),
+        _DashboardRole.manager => _managerSections(size, user),
+        _DashboardRole.leader => _leaderSections(size),
+        _DashboardRole.pastor => _pastorSections(size, user),
+      },
     ];
 
     return RefreshIndicator(
@@ -91,6 +93,41 @@ class DashboardScreen extends ConsumerWidget {
       enabled: size.isAtLeastMedium,
       left: const _NextCommitmentSection(),
       right: const _AnnouncementsSection(),
+    ),
+  ];
+
+  List<Widget> _adminSections(WindowSize size, AuthUser user) => [
+    _AdminHero(user: user),
+    const _AdminKpis(includeGlobal: true),
+    _TwoColumns(
+      enabled: size.isAtLeastMedium,
+      left: const _AdminOrganogram(),
+      right: const _AdminInsights(),
+    ),
+    _TwoColumns(
+      enabled: size.isAtLeastMedium,
+      left: const _CareActivitySection(),
+      right: const _CountriesSection(),
+    ),
+    _TwoColumns(
+      enabled: size.isAtLeastMedium,
+      left: const _AttentionSection(),
+      right: const _AnnouncementsSection(),
+    ),
+  ];
+
+  List<Widget> _managerSections(WindowSize size, AuthUser user) => [
+    _AdminHero(user: user),
+    const _AdminKpis(includeGlobal: false),
+    _TwoColumns(
+      enabled: size.isAtLeastMedium,
+      left: const _AdminOrganogram(),
+      right: const _AdminInsights(),
+    ),
+    _TwoColumns(
+      enabled: size.isAtLeastMedium,
+      left: const _CareActivitySection(),
+      right: const _AttentionSection(),
     ),
   ];
 
@@ -263,6 +300,616 @@ class _MetricGrid extends StatelessWidget {
 // -----------------------------------------------------------------------------
 // Lider
 // -----------------------------------------------------------------------------
+
+class _AdminHero extends StatelessWidget {
+  const _AdminHero({required this.user});
+
+  final AuthUser user;
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = context.windowSize.isCompact;
+    final role = _dashboardRole(user);
+    final roleLabel = switch (role) {
+      _DashboardRole.president => 'PAINEL DA PRESID\u00caNCIA',
+      _DashboardRole.manager => 'PAINEL DE GEST\u00c3O DE L\u00cdDERES',
+      _DashboardRole.leader => 'PAINEL DO L\u00cdDER DE PASTORES',
+      _DashboardRole.pastor => 'PAINEL PASTORAL',
+    };
+    final title = switch (role) {
+      _DashboardRole.president => 'Vis\u00e3o global da rede',
+      _DashboardRole.manager => 'Vis\u00e3o da lideran\u00e7a',
+      _DashboardRole.leader => 'Minha equipe pastoral',
+      _DashboardRole.pastor => 'Meu minist\u00e9rio',
+    };
+    final description = switch (role) {
+      _DashboardRole.president =>
+        'Acompanhe a sa\u00fade e o crescimento de toda a rede em um s\u00f3 lugar.',
+      _DashboardRole.manager =>
+        'Acompanhe gestores, l\u00edderes e pastores dentro do seu escopo.',
+      _DashboardRole.leader =>
+        'Cuide das pessoas, acompanhe os pr\u00f3ximos passos e fortale\u00e7a sua equipe.',
+      _DashboardRole.pastor =>
+        'Organize seus compromissos e mantenha seu cuidado pastoral em dia.',
+    };
+    return Container(
+      padding: const EdgeInsets.all(AppTokens.space24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, Color(0xFF176B75)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppTokens.radius24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Flex(
+        direction: compact ? Axis.vertical : Axis.horizontal,
+        crossAxisAlignment: compact
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: compact ? 0 : 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.space8,
+                    vertical: AppTokens.space4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AppTokens.pill),
+                  ),
+                  child: Text(
+                    roleLabel,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTokens.space12),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: AppTokens.space4),
+                Text(
+                  'Ol\u00e1, ${user.firstName}. $description',
+                  style: const TextStyle(color: Colors.white70, height: 1.35),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: compact ? 0 : AppTokens.space24,
+            height: compact ? AppTokens.space16 : 0,
+          ),
+          Wrap(
+            spacing: AppTokens.space8,
+            runSpacing: AppTokens.space8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => context.go('/network'),
+                icon: const Icon(Icons.account_tree_outlined, size: 18),
+                label: const Text('Ver organograma'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.45)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.space12,
+                    vertical: AppTokens.space12,
+                  ),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: () => context.go('/pastors/new'),
+                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                label: const Text('Novo pastor'),
+                style: FilledButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.space12,
+                    vertical: AppTokens.space12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+enum _DashboardRole { pastor, leader, manager, president }
+
+_DashboardRole _dashboardRole(AuthUser user) {
+  if (user.roles.contains('GLOBAL_ADMIN')) return _DashboardRole.president;
+  if (user.roles.contains('NATIONAL_LEADER') ||
+      user.roles.contains('REGIONAL_LEADER')) {
+    return _DashboardRole.manager;
+  }
+  if (user.roles.contains('SUPERVISOR') || user.isLeader) {
+    return _DashboardRole.leader;
+  }
+  return _DashboardRole.pastor;
+}
+
+class _AdminKpis extends ConsumerWidget {
+  const _AdminKpis({required this.includeGlobal});
+
+  final bool includeGlobal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!includeGlobal) {
+      return AsyncValueView(
+        value: ref.watch(leaderDashboardProvider),
+        onRetry: () => ref.invalidate(leaderDashboardProvider),
+        loading: const Skeleton(height: 112, radius: AppTokens.radius16),
+        data: (leader) => _buildKpis(context, leader, null),
+      );
+    }
+    return AsyncValueView(
+      value: ref.watch(globalDashboardProvider),
+      onRetry: () => ref.invalidate(globalDashboardProvider),
+      loading: const Skeleton(height: 112, radius: AppTokens.radius16),
+      data: (global) => AsyncValueView(
+        value: ref.watch(leaderDashboardProvider),
+        onRetry: () => ref.invalidate(leaderDashboardProvider),
+        loading: const Skeleton(height: 112, radius: AppTokens.radius16),
+        data: (leader) => _buildKpis(context, leader, global),
+      ),
+    );
+  }
+
+  Widget _buildKpis(
+    BuildContext context,
+    LeaderDashboard leader,
+    GlobalDashboard? global,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 900
+            ? 4
+            : constraints.maxWidth >= 520
+            ? 2
+            : 1;
+        final gap = AppTokens.space12;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+        final items = [
+          _AdminKpiData(
+            value: '${global?.totalPastors ?? leader.totalInNetwork}',
+            label: global == null ? 'Pastores na rede' : 'Pastores cadastrados',
+            detail: global == null
+                ? '${leader.directReports} sob sua lideran\u00e7a direta'
+                : '${global.activePastors} ativos na rede',
+            icon: Icons.groups_rounded,
+            color: AppColors.softPrimary,
+            path: '/pastors',
+          ),
+          _AdminKpiData(
+            value: global == null
+                ? '${leader.activePastors}'
+                : '${global.totalChurches}',
+            label: global == null ? 'Pastores ativos' : 'Igrejas conectadas',
+            detail: global == null
+                ? 'dentro do seu escopo'
+                : '${global.countries} pa\u00edses alcan\u00e7ados',
+            icon: global == null
+                ? Icons.verified_user_outlined
+                : Icons.church_rounded,
+            color: AppColors.softBlue,
+            path: global == null ? '/network' : '/churches',
+          ),
+          _AdminKpiData(
+            value: '${leader.withoutCareOver30Days}',
+            label: 'Precisam de cuidado',
+            detail: 'h\u00e1 mais de 30 dias',
+            icon: Icons.favorite_border_rounded,
+            color: const Color(0xFFFFF1E5),
+            valueColor: AppColors.accent,
+            path: '/network?careOverdueDays=30',
+          ),
+          _AdminKpiData(
+            value: global == null
+                ? '${leader.upcomingCareNext7Days}'
+                : '${global.newPastors}',
+            label: global == null
+                ? 'Pr\u00f3ximos 7 dias'
+                : 'Novos este m\u00eas',
+            detail: global == null
+                ? '${leader.openRequests} solicita\u00e7\u00f5es em aberto'
+                : '${leader.openRequests} solicita\u00e7\u00f5es em aberto',
+            icon: global == null
+                ? Icons.event_available_rounded
+                : Icons.trending_up_rounded,
+            color: const Color(0xFFEAF8F0),
+            valueColor: AppColors.success,
+            path: global == null ? '/calendar' : '/pastors',
+          ),
+        ];
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final item in items)
+              SizedBox(
+                width: width,
+                child: _AdminKpiCard(item: item),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AdminKpiData {
+  const _AdminKpiData({
+    required this.value,
+    required this.label,
+    required this.detail,
+    required this.icon,
+    required this.color,
+    required this.path,
+    this.valueColor = AppColors.primary,
+  });
+
+  final String value;
+  final String label;
+  final String detail;
+  final IconData icon;
+  final Color color;
+  final Color valueColor;
+  final String path;
+}
+
+class _AdminKpiCard extends StatelessWidget {
+  const _AdminKpiCard({required this.item});
+
+  final _AdminKpiData item;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      color: item.color,
+      onTap: () => context.go(item.path),
+      padding: const EdgeInsets.all(AppTokens.space16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(item.icon, color: item.valueColor, size: 20),
+              const Spacer(),
+              const Icon(
+                Icons.arrow_outward_rounded,
+                color: AppColors.mutedInk,
+                size: 16,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTokens.space12),
+          Text(
+            item.value,
+            style: TextStyle(
+              color: item.valueColor,
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: AppTokens.space4),
+          Text(
+            item.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            item.detail,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.mutedInk, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminOrganogram extends ConsumerWidget {
+  const _AdminOrganogram();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SectionHeader(
+            title: 'Organograma da rede',
+            actionLabel: 'Abrir rede',
+            onAction: () => context.go('/network'),
+          ),
+          const SizedBox(height: AppTokens.space4),
+          const Text(
+            'Uma leitura r\u00e1pida da estrutura de lideran\u00e7a.',
+            style: TextStyle(color: AppColors.mutedInk, fontSize: 12),
+          ),
+          const SizedBox(height: AppTokens.space16),
+          AsyncValueView(
+            value: ref.watch(leaderDashboardProvider),
+            onRetry: () => ref.invalidate(leaderDashboardProvider),
+            loading: const Skeleton(height: 150),
+            data: (d) {
+              final user = ref.watch(currentUserProvider);
+              final president = user?.roles.contains('GLOBAL_ADMIN') ?? false;
+              final nodes = [
+                _OrgNode(
+                  title: president ? 'Presidente' : 'Gestor de l\u00edderes',
+                  detail: president
+                      ? 'Vis\u00e3o global da igreja'
+                      : 'Gest\u00e3o do seu escopo',
+                  icon: president
+                      ? Icons.stars_rounded
+                      : Icons.manage_accounts_rounded,
+                  color: AppColors.primary,
+                  foreground: Colors.white,
+                ),
+                if (president)
+                  const _OrgNode(
+                    title: 'Gestor de l\u00edderes',
+                    detail: 'Vis\u00e3o nacional ou regional',
+                    icon: Icons.public_rounded,
+                    color: AppColors.softPrimary,
+                  ),
+                _OrgNode(
+                  title: 'L\u00edder de pastores',
+                  detail: '${d.directReports} lideran\u00e7as diretas',
+                  icon: Icons.hub_outlined,
+                  color: AppColors.softBlue,
+                ),
+                _OrgNode(
+                  title: 'Pastores',
+                  detail:
+                      '${d.activePastors} ativos · ${d.withoutCareOver30Days} em aten\u00e7\u00e3o',
+                  icon: Icons.groups_outlined,
+                  color: AppColors.softPurple,
+                ),
+              ];
+              return Column(
+                children: [
+                  for (var i = 0; i < nodes.length; i++) ...[
+                    nodes[i],
+                    if (i < nodes.length - 1)
+                      Container(
+                        width: 2,
+                        height: 16,
+                        color: AppColors.secondary.withValues(alpha: 0.5),
+                      ),
+                  ],
+                  const SizedBox(height: AppTokens.space16),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: AppColors.mutedInk,
+                      ),
+                      const SizedBox(width: AppTokens.space8),
+                      Expanded(
+                        child: Text(
+                          '${d.upcomingCareNext7Days} acompanhamentos previstos nos pr\u00f3ximos 7 dias',
+                          style: const TextStyle(
+                            color: AppColors.mutedInk,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrgNode extends StatelessWidget {
+  const _OrgNode({
+    required this.title,
+    required this.detail,
+    required this.icon,
+    required this.color,
+    this.foreground = AppColors.primary,
+  });
+
+  final String title;
+  final String detail;
+  final IconData icon;
+  final Color color;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 150,
+      padding: const EdgeInsets.all(AppTokens.space12),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(AppTokens.radius12),
+        border: Border.all(color: foreground.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: foreground, size: 20),
+          const SizedBox(height: AppTokens.space8),
+          Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: foreground,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            detail,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: foreground.withValues(alpha: 0.72),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdminInsights extends ConsumerWidget {
+  const _AdminInsights();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeader(title: 'Insights para hoje'),
+          const SizedBox(height: AppTokens.space8),
+          AsyncValueView(
+            value: ref.watch(leaderDashboardProvider),
+            onRetry: () => ref.invalidate(leaderDashboardProvider),
+            loading: const _ListSkeleton(),
+            data: (d) => Column(
+              children: [
+                _InsightTile(
+                  icon: Icons.favorite_rounded,
+                  color: AppColors.alert,
+                  title: d.withoutCareOver30Days == 0
+                      ? 'Cuidado pastoral em dia'
+                      : '${d.withoutCareOver30Days} pastores pedem aten\u00e7\u00e3o',
+                  detail: d.withoutCareOver30Days == 0
+                      ? 'Nenhuma pessoa passou de 30 dias sem acompanhamento.'
+                      : 'Priorize a lista de acompanhamento desta semana.',
+                  onTap: () => context.go('/network?careOverdueDays=30'),
+                ),
+                _InsightTile(
+                  icon: Icons.calendar_month_rounded,
+                  color: AppColors.secondary,
+                  title: '${d.upcomingCareNext7Days} compromissos na agenda',
+                  detail: d.careToday == 0
+                      ? 'Nenhum acompanhamento marcado para hoje.'
+                      : '${d.careToday} acompanhamento${d.careToday == 1 ? '' : 's'} previsto${d.careToday == 1 ? '' : 's'} para hoje.',
+                  onTap: () => context.go('/calendar'),
+                ),
+                _InsightTile(
+                  icon: Icons.mark_unread_chat_alt_rounded,
+                  color: AppColors.accent,
+                  title: '${d.openRequests} solicita\u00e7\u00f5es abertas',
+                  detail: 'Acompanhe as demandas que aguardam resposta.',
+                  onTap: () => context.go('/requests'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightTile extends StatelessWidget {
+  const _InsightTile({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.detail,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String detail;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppTokens.radius12),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppTokens.space8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppTokens.radius12),
+              ),
+              child: Icon(icon, color: color, size: 19),
+            ),
+            const SizedBox(width: AppTokens.space12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    detail,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.mutedInk,
+                      fontSize: 12,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.mutedInk),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _LeaderMetrics extends ConsumerWidget {
   const _LeaderMetrics();
