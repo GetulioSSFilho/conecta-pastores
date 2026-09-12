@@ -33,7 +33,7 @@ const NAVIGATION_RULES = [
   { path: '/network', terms: ['minha rede', 'organograma', 'rede pastoral', 'liderados'] },
   { path: '/requests', terms: ['solicitacao', 'solicitação', 'solicitacoes', 'solicitações', 'pedido', 'demanda'] },
   { path: '/pastors', terms: ['pastores', 'diretorio', 'diretório', 'cadastro de pastor'] },
-  { path: '/reports', terms: ['relatorio', 'relatório', 'indicadores', 'insight', 'desempenho'] },
+  { path: '/reports', terms: ['relat', 'indicador', 'insight', 'desempenho', 'gerencial'] },
   { path: '/training', terms: ['formacao', 'formação', 'curso', 'treinamento'] },
   { path: '/documents', terms: ['documento', 'documentos', 'arquivo'] },
   { path: '/churches', terms: ['igreja', 'igrejas'] },
