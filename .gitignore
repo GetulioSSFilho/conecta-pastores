@@ -1,0 +1,51 @@
+# Node
+node_modules/
+dist/
+build/
+coverage/
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Prisma
+apps/api/prisma/*.db
+
+# Flutter
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/build/
+apps/mobile/ios/Pods/
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/**/*.g.dart
+apps/mobile/**/*.freezed.dart
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local infra data
+docker/data/
+infra/data/
+
+# Storage local do driver `local` (arquivos enviados em desenvolvimento)
+apps/api/.storage/
+
+# npm cache local
+.npm-cache/
+
+# Temporary browser profiles used only for local UI validation
+.tmp-chrome-*/
