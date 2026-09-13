@@ -124,22 +124,27 @@ class _LandingScreenState extends State<LandingScreen>
                           ),
                         ),
                         SizedBox(height: compact ? 12 : 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            key: const Key('landing-login'),
-                            onPressed: () => context.go('/login'),
-                            icon: const Icon(Icons.login_rounded),
-                            label: const Text('Fazer login'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primary,
-                              padding: EdgeInsets.symmetric(
-                                vertical: compact ? 12 : 15,
-                              ),
-                              textStyle: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
+                        Align(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 460),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                key: const Key('landing-login'),
+                                onPressed: () => context.go('/login'),
+                                icon: const Icon(Icons.login_rounded),
+                                label: const Text('Fazer login'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: AppColors.primary,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: compact ? 12 : 15,
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -173,22 +178,30 @@ class _AnimatedMountain extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (context, _) {
-        final progress = animation.value;
-        return ClipRect(
-          child: Transform.translate(
-            offset: Offset(-10 * progress, 0),
-            child: Transform.scale(
-              scale: 1.06 + .035 * math.sin(progress * math.pi),
-              child: const Image(
-                image: AssetImage('assets/images/mountain_sunrise.png'),
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final travel = math.max(22.0, constraints.maxWidth * .06);
+        final verticalTravel = math.max(4.0, constraints.maxHeight * .01);
+
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, _) {
+            final progress = animation.value;
+            final breathing = math.sin(progress * math.pi);
+            return ClipRect(
+              child: Transform.translate(
+                offset: Offset(-travel * progress, -verticalTravel * breathing),
+                child: Transform.scale(
+                  scale: 1.10 + .05 * breathing,
+                  child: const Image(
+                    image: AssetImage('assets/images/mountain_sunrise.png'),
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );

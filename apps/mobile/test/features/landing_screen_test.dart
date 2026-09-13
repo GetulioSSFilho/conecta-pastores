@@ -23,6 +23,7 @@ void main() {
     expect(find.text('Fazer login'), findsOneWidget);
 
     final loginButton = find.byKey(const Key('landing-login'));
+    expect(tester.getSize(loginButton).width, lessThanOrEqualTo(460));
     await tester.ensureVisible(loginButton);
     await tester.tap(loginButton);
     await tester.pump();
