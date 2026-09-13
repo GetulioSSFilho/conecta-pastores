@@ -53,118 +53,127 @@ class _LandingScreenState extends State<LandingScreen>
                   final horizontalPadding = constraints.maxWidth < 360
                       ? 20.0
                       : 24.0;
+                  final centerBottom = compact ? 164.0 : 180.0;
 
-                  return Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      horizontalPadding,
-                      20,
-                      horizontalPadding,
-                      20,
-                    ),
-                    child: Column(
-                      children: [
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: AppBrandLockup(
-                            label: 'Conecta Pastores',
-                            markSize: 36,
+                  return Stack(
+                    children: [
+                      Positioned(
+                        top: 20,
+                        left: horizontalPadding,
+                        right: horizontalPadding,
+                        child: const AppBrandLockup(
+                          label: 'Conecta Pastores',
+                          markSize: 36,
+                          color: Colors.white,
+                          textStyle: TextStyle(
                             color: Colors.white,
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.center,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                AppBrandMark(
-                                  size: compact ? 76 : 88,
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: horizontalPadding,
+                        right: horizontalPadding,
+                        bottom: centerBottom,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.center,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AppBrandMark(
+                                size: compact ? 76 : 88,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Conecta\nPastores',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
                                   color: Colors.white,
+                                  fontSize: 36,
+                                  height: .95,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -.8,
                                 ),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'Conecta\nPastores',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 36,
-                                    height: .95,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -.8,
-                                  ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Uma rede para cuidar de pessoas,\nigrejas e l\u00EDderes.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: .86),
+                                  fontSize: 15,
+                                  height: 1.35,
                                 ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Uma rede para cuidar de pessoas,\nigrejas e l\u00EDderes.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: .86),
-                                    fontSize: 15,
-                                    height: 1.35,
-                                  ),
-                                ),
-                              ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: horizontalPadding,
+                        right: horizontalPadding,
+                        bottom: 0,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Mais que uma rede.\nUma miss\u00E3o.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                height: 1.25,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                        ),
-                        SizedBox(height: compact ? 10 : 18),
-                        const Text(
-                          'Mais que uma rede.\nUma miss\u00E3o.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                            height: 1.25,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        SizedBox(height: compact ? 12 : 20),
-                        Align(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 460),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: Hero(
-                                tag: loginHeroTag,
-                                child: FilledButton.icon(
-                                  key: const Key('landing-login'),
-                                  onPressed: () => context.go('/login'),
-                                  icon: const Icon(Icons.login_rounded),
-                                  label: const Text('Fazer login'),
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: AppColors.primary,
-                                    padding: EdgeInsets.symmetric(
-                                      vertical: compact ? 12 : 15,
-                                    ),
-                                    textStyle: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 15,
+                            SizedBox(height: compact ? 12 : 20),
+                            Align(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 460,
+                                ),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: Hero(
+                                    tag: loginHeroTag,
+                                    child: FilledButton.icon(
+                                      key: const Key('landing-login'),
+                                      onPressed: () => context.go('/login'),
+                                      icon: const Icon(Icons.login_rounded),
+                                      label: const Text('Fazer login'),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: AppColors.primary,
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: compact ? 12 : 15,
+                                        ),
+                                        textStyle: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 15,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Acesso exclusivo para pastores e lideran\u00E7as',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: .72),
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Acesso exclusivo para pastores e lideran\u00E7as',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: .72),
-                            fontSize: 11.5,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   );
                 },
               ),
