@@ -968,7 +968,7 @@ class _LeadershipTab extends ConsumerWidget {
                   ),
                 ]
               : [
-                  _ProfileHierarchyGraph(
+                  PastorHierarchyOrganogram(
                     hierarchy: hierarchy,
                     currentId: pastorId,
                   ),
@@ -979,8 +979,9 @@ class _LeadershipTab extends ConsumerWidget {
   }
 }
 
-class _ProfileHierarchyGraph extends StatefulWidget {
-  const _ProfileHierarchyGraph({
+class PastorHierarchyOrganogram extends StatefulWidget {
+  const PastorHierarchyOrganogram({
+    super.key,
     required this.hierarchy,
     required this.currentId,
   });
@@ -989,10 +990,11 @@ class _ProfileHierarchyGraph extends StatefulWidget {
   final String currentId;
 
   @override
-  State<_ProfileHierarchyGraph> createState() => _ProfileHierarchyGraphState();
+  State<PastorHierarchyOrganogram> createState() =>
+      _ProfileHierarchyGraphState();
 }
 
-class _ProfileHierarchyGraphState extends State<_ProfileHierarchyGraph> {
+class _ProfileHierarchyGraphState extends State<PastorHierarchyOrganogram> {
   late final Set<String> _expanded;
   final _transform = TransformationController();
   var _didInitialize = false;

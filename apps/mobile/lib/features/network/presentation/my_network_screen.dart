@@ -1079,6 +1079,65 @@ _DemoTreeNode _treeForScope(AuthUser? user) {
   ]);
 }
 
+/// Contexto do organograma usado quando uma pessoa da árvore demonstrativa é
+/// aberta. Mantém somente o caminho de ancestrais e a subárvore permitida.
+class DemoHierarchyPerson {
+  const DemoHierarchyPerson({
+    required this.id,
+    required this.name,
+    required this.detail,
+    required this.image,
+    this.children = const [],
+  });
+
+  final String id;
+  final String name;
+  final String detail;
+  final String image;
+  final List<DemoHierarchyPerson> children;
+}
+
+class DemoHierarchyContext {
+  const DemoHierarchyContext({required this.ancestors, required this.subject});
+
+  /// Do superior direto até o topo, formato esperado pelo organograma de
+  /// perfil para desenhar a cadeia de baixo para cima.
+  final List<DemoHierarchyPerson> ancestors;
+  final DemoHierarchyPerson subject;
+}
+
+DemoHierarchyContext? demoHierarchyFor(AuthUser? user, String pastorId) {
+  final path = _findDemoPath(_treeForScope(user), pastorId);
+  if (path == null) return null;
+  return DemoHierarchyContext(
+    ancestors: [
+      for (var index = path.length - 2; index >= 0; index--)
+        _toDemoHierarchyPerson(path[index]),
+    ],
+    subject: _toDemoHierarchyPerson(path.last),
+  );
+}
+
+List<_DemoTreeNode>? _findDemoPath(_DemoTreeNode node, String id) {
+  if (node.id == id) return [node];
+  for (final child in node.children) {
+    final childPath = _findDemoPath(child, id);
+    if (childPath != null) return [node, ...childPath];
+  }
+  return null;
+}
+
+DemoHierarchyPerson _toDemoHierarchyPerson(_DemoTreeNode node) =>
+    DemoHierarchyPerson(
+      id: node.id,
+      name: node.name,
+      detail: node.detail,
+      image: node.image,
+      children: [
+        for (final child in node.children) _toDemoHierarchyPerson(child),
+      ],
+    );
+
 _DemoTreeNode _treeBranch(
   _DemoTreeNode node,
   List<String> path, {

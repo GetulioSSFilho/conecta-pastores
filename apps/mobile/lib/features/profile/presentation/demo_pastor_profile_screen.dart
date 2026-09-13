@@ -1,36 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/responsive/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/widgets/person_avatar.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../network/presentation/my_network_screen.dart';
+import '../domain/pastor_profile_models.dart';
+import 'pastor_profile_screen.dart';
 
 /// Perfil local usado pelos nós do organograma de apresentação.
 ///
 /// A árvore ainda é mockada, portanto esses perfis não consultam a API. O
 /// mesmo caminho `/pastors/:id` continua sendo usado para que a experiência
 /// seja idêntica quando os nós passarem a ter IDs persistidos.
-class DemoPastorProfileScreen extends StatelessWidget {
+class DemoPastorProfileScreen extends ConsumerWidget {
   const DemoPastorProfileScreen({
     super.key,
+    this.pastorId,
     required this.name,
     required this.detail,
     this.image,
   });
 
+  final String? pastorId;
   final String name;
   final String detail;
   final String? image;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final parts = detail.split(' · ');
     final role = parts.first;
     final organization = parts.length > 1
         ? parts.sublist(1).join(' · ')
         : 'Rede Lagoinha';
     final padding = context.windowSize.pagePadding;
+    final hierarchy = pastorId == null
+        ? null
+        : demoHierarchyFor(ref.watch(currentUserProvider), pastorId!);
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(padding, padding, padding, padding * 2),
@@ -113,6 +123,17 @@ class DemoPastorProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppTokens.space16),
+              if (hierarchy != null) ...[
+                _InfoCard(
+                  title: 'Organograma do pastor',
+                  icon: Icons.account_tree_outlined,
+                  child: PastorHierarchyOrganogram(
+                    hierarchy: _toPastorHierarchy(hierarchy),
+                    currentId: hierarchy.subject.id,
+                  ),
+                ),
+                const SizedBox(height: AppTokens.space16),
+              ],
               _InfoCard(
                 title: 'Sobre',
                 icon: Icons.person_outline_rounded,
@@ -148,6 +169,32 @@ class DemoPastorProfileScreen extends StatelessWidget {
     );
   }
 }
+
+PastorHierarchy _toPastorHierarchy(DemoHierarchyContext context) =>
+    PastorHierarchy(
+      ancestors: [
+        for (var index = 0; index < context.ancestors.length; index++)
+          LeadershipLink(
+            depth: index + 1,
+            pastorId: context.ancestors[index].id,
+            pastoralName: context.ancestors[index].name,
+            photoUrl: context.ancestors[index].image,
+            churchName: context.ancestors[index].detail,
+          ),
+      ],
+      descendants: _toPastorHierarchyNode(context.subject),
+    );
+
+PastorHierarchyNode _toPastorHierarchyNode(DemoHierarchyPerson person) =>
+    PastorHierarchyNode(
+      id: person.id,
+      pastoralName: person.name,
+      photoUrl: person.image,
+      ministryTitle: person.detail,
+      children: [
+        for (final child in person.children) _toPastorHierarchyNode(child),
+      ],
+    );
 
 class _InfoCard extends StatelessWidget {
   const _InfoCard({

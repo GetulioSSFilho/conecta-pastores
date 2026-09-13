@@ -124,6 +124,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             final query = state.uri.queryParameters;
             if (query['demo'] == '1') {
               return DemoPastorProfileScreen(
+                pastorId: id,
                 name: query['name'] ?? 'Pastor',
                 detail: query['detail'] ?? 'Perfil de demonstração',
                 image: query['image'],
