@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:pastoral_app/features/auth/application/auth_controller.dart';
 import 'package:pastoral_app/features/auth/presentation/login_screen.dart';
+import 'package:pastoral_app/features/auth/presentation/landing_screen.dart';
 import 'package:pastoral_app/features/auth/presentation/password_screens.dart';
 import 'package:pastoral_app/features/dashboard/data/dashboard_providers.dart';
 import 'package:pastoral_app/features/dashboard/presentation/dashboard_screen.dart';
@@ -28,14 +29,22 @@ Widget _app(AuthState state) => ProviderScope(
   child: const PastoralApp(),
 );
 
+Future<void> _pumpLanding(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 void main() {
   setUpAll(() => initializeDateFormatting('pt_BR'));
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('sem sessao, rota protegida vai para o login', (tester) async {
+  testWidgets('sem sessao, a entrada publica mostra boas-vindas', (
+    tester,
+  ) async {
     await tester.pumpWidget(_app(const AuthSignedOut()));
-    await tester.pumpAndSettle();
-    expect(find.byType(LoginScreen), findsOneWidget);
+    await _pumpLanding(tester);
+    expect(find.byType(LandingScreen), findsOneWidget);
+    expect(find.byType(LoginScreen), findsNothing);
     expect(find.byType(DashboardScreen), findsNothing);
   });
 
@@ -64,6 +73,8 @@ void main() {
 
   testWidgets('login valida campos antes de chamar a API', (tester) async {
     await tester.pumpWidget(_app(const AuthSignedOut()));
+    await _pumpLanding(tester);
+    await tester.tap(find.text('Fazer login'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Entrar'));
     await tester.pump();
@@ -75,6 +86,8 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(_app(const AuthSignedOut()));
+    await _pumpLanding(tester);
+    await tester.tap(find.text('Fazer login'));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('contact-leadership')));
     await tester.pumpAndSettle();

@@ -65,7 +65,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   ref.onDispose(authChanges.dispose);
 
   return GoRouter(
-    initialLocation: '/dashboard',
+    // A entrada pública começa na tela de boas-vindas. Após autenticar, a
+    // regra abaixo leva o usuário ao dashboard sem expor uma rota protegida.
+    initialLocation: '/',
     refreshListenable: authChanges,
     debugLogDiagnostics: false,
     redirect: (context, state) {
