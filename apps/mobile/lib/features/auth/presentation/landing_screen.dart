@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_brand.dart';
 
 const loginHeroTag = 'conecta-login-cta';
+const passwordRecoveryHeroTag = 'conecta-password-recovery';
 
 /// Entrada publica da plataforma com uma animacao leve sobre a paisagem.
 class LandingScreen extends StatefulWidget {

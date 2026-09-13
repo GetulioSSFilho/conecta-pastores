@@ -317,9 +317,16 @@ class _LoginCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        TextButton(
-                          onPressed: loading ? null : onForgot,
-                          child: const Text('Esqueci a senha'),
+                        Material(
+                          type: MaterialType.transparency,
+                          child: TextButton.icon(
+                            onPressed: loading ? null : onForgot,
+                            icon: Hero(
+                              tag: passwordRecoveryHeroTag,
+                              child: const Icon(Icons.lock_reset_outlined),
+                            ),
+                            label: const Text('Esqueci a senha'),
+                          ),
                         ),
                       ],
                     ),
@@ -462,14 +469,105 @@ class _ForgotPasswordDialogState extends ConsumerState<ForgotPasswordDialog> {
   Widget build(BuildContext context) {
     final isDev = ref.watch(appConfigProvider).isDev;
     return AlertDialog(
-      title: const Text('Recuperar senha'),
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTokens.radius24),
+      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 16, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      title: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Hero(
+            tag: passwordRecoveryHeroTag,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(AppTokens.radius16),
+                ),
+                child: const Icon(
+                  Icons.lock_reset_outlined,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Recuperar senha',
+                  style: TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Vamos ajudar voce a voltar para a sua conta.',
+                  style: TextStyle(
+                    color: AppColors.mutedInk,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Fechar',
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close_rounded),
+          ),
+        ],
+      ),
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
+        constraints: const BoxConstraints(maxWidth: 420),
         child: _sent
             ? Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppTokens.space16),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(AppTokens.radius16),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.mark_email_read_outlined,
+                          color: AppColors.success,
+                          size: 24,
+                        ),
+                        SizedBox(width: AppTokens.space12),
+                        Expanded(
+                          child: Text(
+                            'Confira sua caixa de entrada e a pasta de spam.',
+                            style: TextStyle(
+                              color: AppColors.ink,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppTokens.space16),
                   const Text(
                     'Se este e-mail estiver cadastrado, você receberá as instruções para criar uma nova senha.',
                   ),
@@ -487,7 +585,13 @@ class _ForgotPasswordDialogState extends ConsumerState<ForgotPasswordDialog> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Informe o e-mail da sua conta.'),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Digite o e-mail usado no seu cadastro. Enviaremos um link seguro para redefinir sua senha.',
+                        style: TextStyle(color: AppColors.mutedInk),
+                      ),
+                    ),
                     const SizedBox(height: AppTokens.space16),
                     if (_error != null) ...[
                       _ErrorBanner(message: _error!),
@@ -498,7 +602,8 @@ class _ForgotPasswordDialogState extends ConsumerState<ForgotPasswordDialog> {
                       autofocus: true,
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(
-                        labelText: 'E-mail',
+                        labelText: 'E-mail da conta',
+                        hintText: 'voce@exemplo.com',
                         prefixIcon: Icon(Icons.mail_outline_rounded),
                       ),
                       validator: (v) => (v?.contains('@') ?? false)
@@ -543,7 +648,7 @@ class _ForgotPasswordDialogState extends ConsumerState<ForgotPasswordDialog> {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Enviar'),
+                    : const Text('Enviar link'),
               ),
             ],
     );

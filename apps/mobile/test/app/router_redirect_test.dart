@@ -82,6 +82,22 @@ void main() {
     expect(find.text('Informe sua senha.'), findsOneWidget);
   });
 
+  testWidgets('recuperacao de senha abre modal aprimorado com Hero', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(const AuthSignedOut()));
+    await _pumpLanding(tester);
+    await tester.tap(find.text('Fazer login'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Esqueci a senha'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recuperar senha'), findsOneWidget);
+    expect(find.text('E-mail da conta'), findsOneWidget);
+    expect(find.text('Enviar link'), findsOneWidget);
+    expect(find.byType(Hero), findsNWidgets(3));
+  });
+
   testWidgets('"Fale com sua liderança" explica como obter acesso', (
     tester,
   ) async {
