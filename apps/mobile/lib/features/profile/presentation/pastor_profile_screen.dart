@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import '../../../core/responsive/breakpoints.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../core/utils/contact_actions.dart';
+import '../../../core/utils/demo_pastor_photos.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/async_value_view.dart';
@@ -377,7 +380,12 @@ class _Avatar extends StatelessWidget {
       ),
       child: PersonAvatar(
         name: summary.pastoralName,
-        photoUrl: summary.photoUrl,
+        photoUrl:
+            summary.photoUrl ??
+            DemoPastorPhotos.forPastor(
+              id: summary.id,
+              name: summary.pastoralName,
+            ),
         size: size,
       ),
     );
@@ -947,46 +955,470 @@ class _LeadershipTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return _asyncTab(
       ref,
-      ref.watch(pastorLeadershipProvider(pastorId)),
-      () => ref.invalidate(pastorLeadershipProvider(pastorId)),
-      (chain) => [
+      ref.watch(pastorHierarchyProvider(pastorId)),
+      () => ref.invalidate(pastorHierarchyProvider(pastorId)),
+      (hierarchy) => [
         _Section(
-          title: 'Cadeia de liderança',
-          children: chain.isEmpty
+          title: 'Organograma do pastor',
+          children: hierarchy.descendants == null && hierarchy.ancestors.isEmpty
               ? const [
                   InlineEmpty(
                     icon: Icons.supervisor_account_outlined,
-                    message: 'Sem supervisor definido.',
+                    message: 'Nenhuma relação de liderança encontrada.',
                   ),
                 ]
               : [
-                  for (final link in chain)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: PersonAvatar(
-                        name: link.pastoralName,
-                        photoUrl: link.photoUrl,
-                      ),
-                      title: Text(
-                        link.pastoralName,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      subtitle: Text(
-                        [
-                          link.depth == 1
-                              ? 'Supervisor direto'
-                              : 'Nível ${link.depth} acima',
-                          ?link.churchName,
-                        ].join(' · '),
-                      ),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.go('/pastors/${link.pastorId}'),
-                    ),
+                  _ProfileHierarchyGraph(
+                    hierarchy: hierarchy,
+                    currentId: pastorId,
+                  ),
                 ],
         ),
       ],
     );
   }
+}
+
+class _ProfileHierarchyGraph extends StatefulWidget {
+  const _ProfileHierarchyGraph({
+    required this.hierarchy,
+    required this.currentId,
+  });
+
+  final PastorHierarchy hierarchy;
+  final String currentId;
+
+  @override
+  State<_ProfileHierarchyGraph> createState() => _ProfileHierarchyGraphState();
+}
+
+class _ProfileHierarchyGraphState extends State<_ProfileHierarchyGraph> {
+  late final Set<String> _expanded;
+  final _transform = TransformationController();
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = {
+      widget.currentId,
+      ...widget.hierarchy.ancestors.map((link) => link.pastorId),
+    };
+  }
+
+  @override
+  void dispose() {
+    _transform.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final layout = _ProfileTreeLayout.build(_composeTree(), _expanded);
+    const graphPadding = 24.0;
+    final width = math.max(
+      layout.width + graphPadding * 2,
+      MediaQuery.sizeOf(context).width - 80,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: context.windowSize.isCompact ? 360 : 420,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppTokens.radius12),
+            child: Stack(
+              children: [
+                InteractiveViewer(
+                  transformationController: _transform,
+                  constrained: false,
+                  minScale: .45,
+                  maxScale: 1.8,
+                  boundaryMargin: const EdgeInsets.all(140),
+                  clipBehavior: Clip.hardEdge,
+                  onInteractionUpdate: (_) => _clampScale(),
+                  onInteractionEnd: (_) => _clampScale(),
+                  child: SizedBox(
+                    width: width,
+                    height: layout.height + graphPadding * 2,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _ProfileTreeConnectorPainter(
+                              edges: layout.edges,
+                              offset: const Offset(graphPadding, graphPadding),
+                            ),
+                          ),
+                        ),
+                        for (final item in layout.nodes)
+                          Positioned(
+                            left: item.position.dx + graphPadding,
+                            top: item.position.dy + graphPadding,
+                            child: _ProfileTreeCard(
+                              node: item.node,
+                              expanded: _expanded.contains(item.node.id),
+                              current: item.node.id == widget.currentId,
+                              onTap: () =>
+                                  context.go('/pastors/${item.node.id}'),
+                              onToggle: () => setState(() {
+                                if (!_expanded.add(item.node.id)) {
+                                  _expanded.remove(item.node.id);
+                                }
+                              }),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Material(
+                    color: AppColors.surface.withValues(alpha: .96),
+                    borderRadius: BorderRadius.circular(AppTokens.radius12),
+                    elevation: 2,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: 'Diminuir zoom',
+                          onPressed: () => _scale(.8),
+                          icon: const Icon(Icons.remove_rounded),
+                        ),
+                        IconButton(
+                          tooltip: 'Aumentar zoom',
+                          onPressed: () => _scale(1.25),
+                          icon: const Icon(Icons.add_rounded),
+                        ),
+                        IconButton(
+                          tooltip: 'Redefinir zoom',
+                          onPressed: () =>
+                              _transform.value = Matrix4.identity(),
+                          icon: const Icon(Icons.center_focus_strong_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 10,
+                  bottom: 10,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.ink.withValues(alpha: .72),
+                      borderRadius: BorderRadius.circular(AppTokens.pill),
+                    ),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Text(
+                        'Pinça para ampliar · arraste para navegar',
+                        style: TextStyle(color: Colors.white, fontSize: 11),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppTokens.space8),
+        const Text(
+          'Ascendentes acima e lideranças diretas abaixo. Toque em uma pessoa para abrir o perfil.',
+          style: TextStyle(color: AppColors.mutedInk, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  void _scale(double factor) {
+    final current = _transform.value.getMaxScaleOnAxis();
+    final next = (current * factor).clamp(.45, 1.8).toDouble();
+    final matrix = Matrix4.copy(_transform.value)
+      ..setEntry(0, 0, next)
+      ..setEntry(1, 1, next)
+      ..setEntry(2, 2, next);
+    _transform.value = matrix;
+  }
+
+  void _clampScale() {
+    final current = _transform.value.getMaxScaleOnAxis();
+    final next = current.clamp(.45, 1.8).toDouble();
+    if (current == 0 || (current - next).abs() < .0001) return;
+    final matrix = Matrix4.copy(_transform.value)
+      ..scaleByDouble(next / current, next / current, next / current, 1);
+    _transform.value = matrix;
+  }
+
+  PastorHierarchyNode _composeTree() {
+    var root =
+        widget.hierarchy.descendants ??
+        const PastorHierarchyNode(id: 'profile', pastoralName: 'Pastor');
+    for (final link in widget.hierarchy.ancestors) {
+      root = PastorHierarchyNode(
+        id: link.pastorId,
+        pastoralName: link.pastoralName,
+        photoUrl: link.photoUrl,
+        churchName: link.churchName,
+        children: [root],
+      );
+    }
+    return root;
+  }
+}
+
+class _ProfileTreeLayoutNode {
+  const _ProfileTreeLayoutNode(this.position, this.node);
+
+  final Offset position;
+  final PastorHierarchyNode node;
+}
+
+class _ProfileTreeEdge {
+  const _ProfileTreeEdge(this.from, this.to);
+
+  final Offset from;
+  final Offset to;
+}
+
+class _ProfileTreeLayoutData {
+  const _ProfileTreeLayoutData({
+    required this.width,
+    required this.height,
+    required this.nodes,
+    required this.edges,
+  });
+
+  final double width;
+  final double height;
+  final List<_ProfileTreeLayoutNode> nodes;
+  final List<_ProfileTreeEdge> edges;
+}
+
+class _ProfileTreeLayout {
+  static const nodeWidth = 156.0;
+  static const nodeHeight = 142.0;
+  static const horizontalGap = 24.0;
+  static const verticalGap = 36.0;
+
+  static _ProfileTreeLayoutData build(
+    PastorHierarchyNode root,
+    Set<String> expanded,
+  ) {
+    final nodes = <_ProfileTreeLayoutNode>[];
+    final edges = <_ProfileTreeEdge>[];
+    final size = _measure(root, expanded, nodes, edges);
+    return _ProfileTreeLayoutData(
+      width: size.width,
+      height: size.height,
+      nodes: nodes,
+      edges: edges,
+    );
+  }
+
+  static ({double width, double height}) _measure(
+    PastorHierarchyNode node,
+    Set<String> expanded,
+    List<_ProfileTreeLayoutNode> nodes,
+    List<_ProfileTreeEdge> edges, {
+    double left = 0,
+    double top = 0,
+  }) {
+    final children = expanded.contains(node.id)
+        ? node.children
+        : const <PastorHierarchyNode>[];
+    if (children.isEmpty) {
+      nodes.add(_ProfileTreeLayoutNode(Offset(left, top), node));
+      return (width: nodeWidth, height: nodeHeight);
+    }
+    final childSizes = [
+      for (final child in children) _subtreeSize(child, expanded),
+    ];
+    final childrenWidth =
+        childSizes.fold<double>(0, (sum, size) => sum + size.width) +
+        horizontalGap * (children.length - 1);
+    final width = math.max(nodeWidth, childrenWidth);
+    final nodeLeft = left + (width - nodeWidth) / 2;
+    nodes.add(_ProfileTreeLayoutNode(Offset(nodeLeft, top), node));
+    var childLeft = left + (width - childrenWidth) / 2;
+    final childTop = top + nodeHeight + verticalGap;
+    var maxChildHeight = 0.0;
+    for (var i = 0; i < children.length; i++) {
+      final child = children[i];
+      final childSize = _measure(
+        child,
+        expanded,
+        nodes,
+        edges,
+        left: childLeft,
+        top: childTop,
+      );
+      edges.add(
+        _ProfileTreeEdge(
+          Offset(nodeLeft + nodeWidth / 2, top + nodeHeight),
+          Offset(childLeft + childSizes[i].width / 2, childTop),
+        ),
+      );
+      childLeft += childSizes[i].width + horizontalGap;
+      maxChildHeight = math.max(maxChildHeight, childSize.height);
+    }
+    return (width: width, height: nodeHeight + verticalGap + maxChildHeight);
+  }
+
+  static ({double width, double height}) _subtreeSize(
+    PastorHierarchyNode node,
+    Set<String> expanded,
+  ) {
+    final nodes = <_ProfileTreeLayoutNode>[];
+    final edges = <_ProfileTreeEdge>[];
+    return _measure(node, expanded, nodes, edges);
+  }
+}
+
+class _ProfileTreeCard extends StatelessWidget {
+  const _ProfileTreeCard({
+    required this.node,
+    required this.expanded,
+    required this.current,
+    required this.onTap,
+    required this.onToggle,
+  });
+
+  final PastorHierarchyNode node;
+  final bool expanded;
+  final bool current;
+  final VoidCallback onTap;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _ProfileTreeLayout.nodeWidth,
+      height: _ProfileTreeLayout.nodeHeight,
+      child: Stack(
+        children: [
+          Material(
+            color: current ? AppColors.softPrimary : AppColors.surface,
+            elevation: 2,
+            shadowColor: AppColors.primary.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(AppTokens.radius16),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(AppTokens.radius16),
+              child: Padding(
+                padding: const EdgeInsets.all(AppTokens.space12),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    PersonAvatar(
+                      name: node.pastoralName,
+                      photoUrl:
+                          node.photoUrl ??
+                          DemoPastorPhotos.forPastor(
+                            id: node.id,
+                            name: node.pastoralName,
+                          ),
+                      size: current ? 56 : 48,
+                    ),
+                    const SizedBox(height: AppTokens.space8),
+                    Text(
+                      node.pastoralName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: current ? FontWeight.w800 : FontWeight.w700,
+                        fontSize: current ? 14 : 13,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      node.detail.isEmpty ? 'Pastor' : node.detail,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          if (node.children.isNotEmpty)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Semantics(
+                button: true,
+                label: expanded
+                    ? 'Recolher ${node.pastoralName}'
+                    : 'Expandir ${node.pastoralName}',
+                child: Material(
+                  color: AppColors.softPrimary,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onToggle,
+                    child: SizedBox(
+                      width: 26,
+                      height: 26,
+                      child: Icon(
+                        expanded ? Icons.remove_rounded : Icons.add_rounded,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileTreeConnectorPainter extends CustomPainter {
+  const _ProfileTreeConnectorPainter({
+    required this.edges,
+    required this.offset,
+  });
+
+  final List<_ProfileTreeEdge> edges;
+  final Offset offset;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.primary.withValues(alpha: .5)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    for (final edge in edges) {
+      final from = edge.from + offset;
+      final to = edge.to + offset;
+      final middleY = from.dy + (to.dy - from.dy) / 2;
+      canvas.drawPath(
+        Path()
+          ..moveTo(from.dx, from.dy)
+          ..lineTo(from.dx, middleY)
+          ..lineTo(to.dx, middleY)
+          ..lineTo(to.dx, to.dy),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ProfileTreeConnectorPainter oldDelegate) =>
+      oldDelegate.edges != edges || oldDelegate.offset != offset;
 }
 
 class _NetworkTab extends ConsumerWidget {

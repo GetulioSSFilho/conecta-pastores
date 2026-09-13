@@ -187,6 +187,14 @@ abstract final class DemoPastorPhotos {
   /// Fallback estável para listas ligadas à API quando o pastor ainda não
   /// possui uma foto cadastrada.
   static String forPastor({required String id, required String name}) {
+    final normalized = name.toLowerCase();
+    if (normalized.contains('rodinei medeiros')) {
+      return 'assets/images/mock_pastores/rodinei_medeiros.jpg';
+    }
+    if (normalized.contains('andré valadão') ||
+        normalized.contains('andre valadao')) {
+      return 'assets/images/mock_pastores/andre_valadao.jpg';
+    }
     final numericId = int.tryParse(
       RegExp(r'(\d+)$').firstMatch(id)?.group(1) ?? '',
     );

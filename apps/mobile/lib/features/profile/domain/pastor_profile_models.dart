@@ -195,6 +195,58 @@ class LeadershipLink {
   final String? churchName;
 }
 
+/// Nó da árvore de descendentes (`GET /network/tree`).
+///
+/// O perfil combina este ramo com a cadeia de ancestrais para apresentar um
+/// organograma centrado no pastor consultado.
+class PastorHierarchyNode {
+  const PastorHierarchyNode({
+    required this.id,
+    required this.pastoralName,
+    this.photoUrl,
+    this.ministryTitle,
+    this.churchName,
+    this.children = const [],
+  });
+
+  factory PastorHierarchyNode.fromJson(Map<String, dynamic> json) {
+    final church = _map(json['church']);
+    return PastorHierarchyNode(
+      id: json['id'] as String,
+      pastoralName: json['pastoralName'] as String? ?? '',
+      photoUrl: _str(json['photoUrl']),
+      ministryTitle: _str(json['ministryTitle']),
+      churchName: _str(church['name']),
+      children: (json['children'] as List? ?? const [])
+          .whereType<Map>()
+          .map(
+            (item) =>
+                PastorHierarchyNode.fromJson(item.cast<String, dynamic>()),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  final String id;
+  final String pastoralName;
+  final String? photoUrl;
+  final String? ministryTitle;
+  final String? churchName;
+  final List<PastorHierarchyNode> children;
+
+  String get detail => [
+    ministryTitle,
+    churchName,
+  ].whereType<String>().where((value) => value.isNotEmpty).join(' · ');
+}
+
+class PastorHierarchy {
+  const PastorHierarchy({required this.ancestors, this.descendants});
+
+  final List<LeadershipLink> ancestors;
+  final PastorHierarchyNode? descendants;
+}
+
 /// Registro de acompanhamento na linha do tempo.
 class CareEntry {
   const CareEntry({

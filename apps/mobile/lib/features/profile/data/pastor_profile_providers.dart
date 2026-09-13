@@ -33,6 +33,30 @@ final pastorLeadershipProvider = FutureProvider.autoDispose
           .toList();
     });
 
+final pastorHierarchyProvider = FutureProvider.autoDispose
+    .family<PastorHierarchy, String>((ref, id) async {
+      final api = ref.watch(apiClientProvider);
+      final responses = await Future.wait([
+        api.getJson('/pastors/$id/leadership'),
+        api.getJson(
+          '/network/tree',
+          query: {'rootPastorId': id, 'maxDepth': 6},
+        ),
+      ]);
+      final leadershipJson = responses[0];
+      final ancestors = (leadershipJson['chain'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => LeadershipLink.fromJson(item.cast<String, dynamic>()))
+          .toList(growable: false);
+      final treeJson = responses[1];
+      return PastorHierarchy(
+        ancestors: ancestors,
+        descendants: treeJson.isEmpty
+            ? null
+            : PastorHierarchyNode.fromJson(treeJson),
+      );
+    });
+
 class PastorNetworkSection {
   const PastorNetworkSection({
     required this.total,
