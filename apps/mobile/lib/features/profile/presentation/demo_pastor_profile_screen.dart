@@ -16,7 +16,7 @@ import 'pastor_profile_screen.dart';
 /// A árvore ainda é mockada, portanto esses perfis não consultam a API. O
 /// mesmo caminho `/pastors/:id` continua sendo usado para que a experiência
 /// seja idêntica quando os nós passarem a ter IDs persistidos.
-class DemoPastorProfileScreen extends ConsumerWidget {
+class DemoPastorProfileScreen extends ConsumerStatefulWidget {
   const DemoPastorProfileScreen({
     super.key,
     this.pastorId,
@@ -31,138 +31,160 @@ class DemoPastorProfileScreen extends ConsumerWidget {
   final String? image;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final parts = detail.split(' · ');
+  ConsumerState<DemoPastorProfileScreen> createState() =>
+      _DemoPastorProfileScreenState();
+}
+
+class _DemoPastorProfileScreenState
+    extends ConsumerState<DemoPastorProfileScreen> {
+  final _scrollLock = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _scrollLock.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = widget.detail.split(' · ');
     final role = parts.first;
     final organization = parts.length > 1
         ? parts.sublist(1).join(' · ')
         : 'Rede Lagoinha';
     final padding = context.windowSize.pagePadding;
-    final hierarchy = pastorId == null
+    final hierarchy = widget.pastorId == null
         ? null
-        : demoHierarchyFor(ref.watch(currentUserProvider), pastorId!);
+        : demoHierarchyFor(ref.watch(currentUserProvider), widget.pastorId!);
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(padding, padding, padding, padding * 2),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(AppTokens.radius24),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/images/mountain_sunrise.png'),
-                    fit: BoxFit.cover,
-                    colorFilter: ColorFilter.mode(
-                      Color(0xD60F4C5C),
-                      BlendMode.srcOver,
+    return ValueListenableBuilder<bool>(
+      valueListenable: _scrollLock,
+      builder: (context, locked, _) => TreeScrollLockScope(
+        lock: _scrollLock,
+        child: SingleChildScrollView(
+          physics: locked ? const NeverScrollableScrollPhysics() : null,
+          padding: EdgeInsets.fromLTRB(padding, padding, padding, padding * 2),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(AppTokens.radius24),
+                      image: const DecorationImage(
+                        image: AssetImage('assets/images/mountain_sunrise.png'),
+                        fit: BoxFit.cover,
+                        colorFilter: ColorFilter.mode(
+                          Color(0xD60F4C5C),
+                          BlendMode.srcOver,
+                        ),
+                      ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppTokens.space16,
+                      AppTokens.space8,
+                      AppTokens.space16,
+                      AppTokens.space24,
+                    ),
+                    child: Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: IconButton(
+                            tooltip: 'Voltar ao organograma',
+                            color: Colors.white,
+                            onPressed: () => context.canPop()
+                                ? context.pop()
+                                : context.go('/network?view=tree'),
+                            icon: const Icon(Icons.arrow_back_rounded),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: PersonAvatar(
+                            name: widget.name,
+                            photoUrl: widget.image,
+                            size: 112,
+                          ),
+                        ),
+                        const SizedBox(height: AppTokens.space12),
+                        Text(
+                          widget.name,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          role,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          organization,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                padding: const EdgeInsets.fromLTRB(
-                  AppTokens.space16,
-                  AppTokens.space8,
-                  AppTokens.space16,
-                  AppTokens.space24,
-                ),
-                child: Column(
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        tooltip: 'Voltar ao organograma',
-                        color: Colors.white,
-                        onPressed: () => context.canPop()
-                            ? context.pop()
-                            : context.go('/network?view=tree'),
-                        icon: const Icon(Icons.arrow_back_rounded),
+                  const SizedBox(height: AppTokens.space16),
+                  if (hierarchy != null) ...[
+                    _InfoCard(
+                      title: 'Organograma do pastor',
+                      icon: Icons.account_tree_outlined,
+                      child: PastorHierarchyOrganogram(
+                        hierarchy: _toPastorHierarchy(hierarchy),
+                        currentId: hierarchy.subject.id,
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: PersonAvatar(
-                        name: name,
-                        photoUrl: image,
-                        size: 112,
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.space12),
-                    Text(
-                      name,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      role,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      organization,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70),
-                    ),
+                    const SizedBox(height: AppTokens.space16),
                   ],
-                ),
-              ),
-              const SizedBox(height: AppTokens.space16),
-              if (hierarchy != null) ...[
-                _InfoCard(
-                  title: 'Organograma do pastor',
-                  icon: Icons.account_tree_outlined,
-                  child: PastorHierarchyOrganogram(
-                    hierarchy: _toPastorHierarchy(hierarchy),
-                    currentId: hierarchy.subject.id,
-                  ),
-                ),
-                const SizedBox(height: AppTokens.space16),
-              ],
-              _InfoCard(
-                title: 'Sobre',
-                icon: Icons.person_outline_rounded,
-                child: Text(
-                  '$name atua na rede da Igreja Batista da Lagoinha, '
-                  'servindo pessoas, igrejas e líderes dentro de sua área de '
-                  'responsabilidade.',
-                  style: const TextStyle(
-                    color: AppColors.mutedInk,
-                    height: 1.45,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTokens.space12),
-              _InfoCard(
-                title: 'Informações',
-                icon: Icons.badge_outlined,
-                child: Column(
-                  children: [
-                    _InfoRow(label: 'Função', value: role),
-                    _InfoRow(label: 'Localidade', value: organization),
-                    const _InfoRow(
-                      label: 'Origem dos dados',
-                      value: 'Demonstração do organograma',
+                  _InfoCard(
+                    title: 'Sobre',
+                    icon: Icons.person_outline_rounded,
+                    child: Text(
+                      '${widget.name} atua na rede da Igreja Batista da Lagoinha, '
+                      'servindo pessoas, igrejas e líderes dentro de sua área de '
+                      'responsabilidade.',
+                      style: const TextStyle(
+                        color: AppColors.mutedInk,
+                        height: 1.45,
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppTokens.space12),
+                  _InfoCard(
+                    title: 'Informações',
+                    icon: Icons.badge_outlined,
+                    child: Column(
+                      children: [
+                        _InfoRow(label: 'Função', value: role),
+                        _InfoRow(label: 'Localidade', value: organization),
+                        const _InfoRow(
+                          label: 'Origem dos dados',
+                          value: 'Demonstração do organograma',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

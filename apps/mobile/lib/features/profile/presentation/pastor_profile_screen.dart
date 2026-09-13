@@ -21,6 +21,7 @@ import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../pastors/domain/pastor_status.dart';
 import '../../pastors/presentation/widgets/pastor_list_tile.dart';
+import '../../network/presentation/my_network_screen.dart';
 import '../data/pastor_profile_providers.dart';
 import '../domain/pastor_profile_models.dart';
 
@@ -33,7 +34,7 @@ class _ProfileTab {
 }
 
 /// Perfil 360 do pastor: cabecalho com acoes e secoes carregadas sob demanda.
-class PastorProfileScreen extends ConsumerWidget {
+class PastorProfileScreen extends ConsumerStatefulWidget {
   const PastorProfileScreen({super.key, required this.pastorId});
 
   final String pastorId;
@@ -100,48 +101,72 @@ class PastorProfileScreen extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PastorProfileScreen> createState() =>
+      _PastorProfileScreenState();
+}
+
+class _PastorProfileScreenState extends ConsumerState<PastorProfileScreen> {
+  final _scrollLock = ValueNotifier<bool>(false);
+
+  @override
+  void dispose() {
+    _scrollLock.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = this.ref;
     final user = ref.watch(currentUserProvider);
     if (user == null) return const SizedBox.shrink();
-    final summary = ref.watch(pastorSummaryProvider(pastorId));
+    final summary = ref.watch(pastorSummaryProvider(widget.pastorId));
 
     // Sem acesso ao resumo nao ha perfil: 403/404 viram estado de pagina inteira.
     if (summary.hasError) {
       final error = summary.error;
       return _ProfileUnavailable(
         error: error,
-        onRetry: () => ref.invalidate(pastorSummaryProvider(pastorId)),
+        onRetry: () => ref.invalidate(pastorSummaryProvider(widget.pastorId)),
       );
     }
 
-    final tabs = _tabsFor(user);
-    return DefaultTabController(
-      length: tabs.length,
-      child: NestedScrollView(
-        headerSliverBuilder: (context, _) => [
-          SliverToBoxAdapter(
-            child: summary.when(
-              skipLoadingOnRefresh: true,
-              data: (s) => _ProfileHeader(summary: s, user: user),
-              loading: () => const _HeaderSkeleton(),
-              error: (_, _) => const SizedBox.shrink(),
-            ),
-          ),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabBarDelegate(
-              // Tres abas cabem sem rolagem lateral, inclusive no celular.
-              TabBar(
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.mutedInk,
-                indicatorColor: AppColors.primary,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w700),
-                tabs: [for (final t in tabs) Tab(text: t.label)],
+    final tabs = widget._tabsFor(user);
+    return ValueListenableBuilder<bool>(
+      valueListenable: _scrollLock,
+      builder: (context, locked, _) => TreeScrollLockScope(
+        lock: _scrollLock,
+        child: DefaultTabController(
+          length: tabs.length,
+          child: NestedScrollView(
+            physics: locked ? const NeverScrollableScrollPhysics() : null,
+            headerSliverBuilder: (context, _) => [
+              SliverToBoxAdapter(
+                child: summary.when(
+                  skipLoadingOnRefresh: true,
+                  data: (s) => _ProfileHeader(summary: s, user: user),
+                  loading: () => const _HeaderSkeleton(),
+                  error: (_, _) => const SizedBox.shrink(),
+                ),
               ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _TabBarDelegate(
+                  // Três abas cabem sem rolagem lateral, inclusive no celular.
+                  TabBar(
+                    labelColor: AppColors.primary,
+                    unselectedLabelColor: AppColors.mutedInk,
+                    indicatorColor: AppColors.primary,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    tabs: [for (final t in tabs) Tab(text: t.label)],
+                  ),
+                ),
+              ),
+            ],
+            body: TabBarView(
+              children: [for (final t in tabs) t.builder(widget.pastorId)],
             ),
           ),
-        ],
-        body: TabBarView(children: [for (final t in tabs) t.builder(pastorId)]),
+        ),
       ),
     );
   }
@@ -582,7 +607,8 @@ class _TabBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final padding = context.windowSize.pagePadding;
-    return ListView(
+    Widget list(bool locked) => ListView(
+      physics: locked ? const NeverScrollableScrollPhysics() : null,
       padding: EdgeInsets.fromLTRB(
         padding,
         AppTokens.space16,
@@ -600,6 +626,12 @@ class _TabBody extends StatelessWidget {
           ),
         ),
       ],
+    );
+    final lock = TreeScrollLockScope.maybeOf(context);
+    if (lock == null) return list(false);
+    return ValueListenableBuilder<bool>(
+      valueListenable: lock,
+      builder: (context, locked, _) => list(locked),
     );
   }
 }
@@ -999,6 +1031,7 @@ class _ProfileHierarchyGraphState extends State<PastorHierarchyOrganogram> {
   final _transform = TransformationController();
   var _didInitialize = false;
   var _initialOffset = Offset.zero;
+  var _activePointers = 0;
 
   @override
   void initState() {
@@ -1013,6 +1046,18 @@ class _ProfileHierarchyGraphState extends State<PastorHierarchyOrganogram> {
   void dispose() {
     _transform.dispose();
     super.dispose();
+  }
+
+  void _pointerDown(PointerDownEvent _) {
+    _activePointers++;
+    TreeScrollLockScope.maybeOf(context)?.value = true;
+  }
+
+  void _pointerUp(PointerEvent _) {
+    _activePointers = math.max(0, _activePointers - 1);
+    if (_activePointers == 0) {
+      TreeScrollLockScope.maybeOf(context)?.value = false;
+    }
   }
 
   @override
@@ -1049,46 +1094,54 @@ class _ProfileHierarchyGraphState extends State<PastorHierarchyOrganogram> {
             borderRadius: BorderRadius.circular(AppTokens.radius12),
             child: Stack(
               children: [
-                InteractiveViewer(
-                  transformationController: _transform,
-                  constrained: false,
-                  minScale: .45,
-                  maxScale: 1.8,
-                  boundaryMargin: const EdgeInsets.all(140),
-                  clipBehavior: Clip.hardEdge,
-                  onInteractionUpdate: (_) => _clampScale(),
-                  onInteractionEnd: (_) => _clampScale(),
-                  child: SizedBox(
-                    width: width,
-                    height: layout.height + graphPadding * 2,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _ProfileTreeConnectorPainter(
-                              edges: layout.edges,
-                              offset: const Offset(graphPadding, graphPadding),
+                Listener(
+                  onPointerDown: _pointerDown,
+                  onPointerUp: _pointerUp,
+                  onPointerCancel: _pointerUp,
+                  child: InteractiveViewer(
+                    transformationController: _transform,
+                    constrained: false,
+                    minScale: .45,
+                    maxScale: 1.8,
+                    boundaryMargin: const EdgeInsets.all(140),
+                    clipBehavior: Clip.hardEdge,
+                    onInteractionUpdate: (_) => _clampScale(),
+                    onInteractionEnd: (_) => _clampScale(),
+                    child: SizedBox(
+                      width: width,
+                      height: layout.height + graphPadding * 2,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _ProfileTreeConnectorPainter(
+                                edges: layout.edges,
+                                offset: const Offset(
+                                  graphPadding,
+                                  graphPadding,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                        for (final item in layout.nodes)
-                          Positioned(
-                            left: item.position.dx + graphPadding,
-                            top: item.position.dy + graphPadding,
-                            child: _ProfileTreeCard(
-                              node: item.node,
-                              expanded: _expanded.contains(item.node.id),
-                              current: item.node.id == widget.currentId,
-                              onTap: () =>
-                                  context.go('/pastors/${item.node.id}'),
-                              onToggle: () => setState(() {
-                                if (!_expanded.add(item.node.id)) {
-                                  _expanded.remove(item.node.id);
-                                }
-                              }),
+                          for (final item in layout.nodes)
+                            Positioned(
+                              left: item.position.dx + graphPadding,
+                              top: item.position.dy + graphPadding,
+                              child: _ProfileTreeCard(
+                                node: item.node,
+                                expanded: _expanded.contains(item.node.id),
+                                current: item.node.id == widget.currentId,
+                                onTap: () =>
+                                    context.go('/pastors/${item.node.id}'),
+                                onToggle: () => setState(() {
+                                  if (!_expanded.add(item.node.id)) {
+                                    _expanded.remove(item.node.id);
+                                  }
+                                }),
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
