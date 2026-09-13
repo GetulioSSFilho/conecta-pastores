@@ -995,6 +995,8 @@ class _ProfileHierarchyGraph extends StatefulWidget {
 class _ProfileHierarchyGraphState extends State<_ProfileHierarchyGraph> {
   late final Set<String> _expanded;
   final _transform = TransformationController();
+  var _didInitialize = false;
+  var _initialOffset = Offset.zero;
 
   @override
   void initState() {
@@ -1019,6 +1021,22 @@ class _ProfileHierarchyGraphState extends State<_ProfileHierarchyGraph> {
       layout.width + graphPadding * 2,
       MediaQuery.sizeOf(context).width - 80,
     );
+    if (!_didInitialize) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _didInitialize) return;
+        final renderBox = context.findRenderObject();
+        final viewportWidth = renderBox is RenderBox
+            ? renderBox.size.width
+            : MediaQuery.sizeOf(context).width - 80;
+        _initialOffset = Offset((viewportWidth - width) / 2, 0);
+        _transform.value = Matrix4.translationValues(
+          _initialOffset.dx,
+          _initialOffset.dy,
+          0,
+        );
+        _didInitialize = true;
+      });
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1095,7 +1113,11 @@ class _ProfileHierarchyGraphState extends State<_ProfileHierarchyGraph> {
                         IconButton(
                           tooltip: 'Redefinir zoom',
                           onPressed: () =>
-                              _transform.value = Matrix4.identity(),
+                              _transform.value = Matrix4.translationValues(
+                                _initialOffset.dx,
+                                _initialOffset.dy,
+                                0,
+                              ),
                           icon: const Icon(Icons.center_focus_strong_rounded),
                         ),
                       ],

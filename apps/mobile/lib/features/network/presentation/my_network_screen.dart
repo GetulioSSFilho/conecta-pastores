@@ -571,6 +571,7 @@ class _TreeGraph extends StatelessWidget {
         final minimumWidth = groupWidth * 2 + branchGap;
         final width = math.max(constraints.maxWidth, minimumWidth);
         return _ZoomableTree(
+          initialOffset: Offset((constraints.maxWidth - width) / 2, 0),
           child: SizedBox(
             width: width,
             height: 540,
@@ -771,9 +772,15 @@ class TreeScrollLockScope extends InheritedWidget {
 /// Viewport do organograma com zoom por pinça no celular e controles para
 /// mouse, teclado e apresentação em telas maiores.
 class _ZoomableTree extends StatefulWidget {
-  const _ZoomableTree({required this.child});
+  const _ZoomableTree({
+    required this.child,
+    this.initialOffset = Offset.zero,
+    this.initialScale = 1,
+  });
 
   final Widget child;
+  final Offset initialOffset;
+  final double initialScale;
 
   @override
   State<_ZoomableTree> createState() => _ZoomableTreeState();
@@ -785,6 +792,14 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
 
   final _controller = TransformationController();
   var _activePointers = 0;
+  var _didInitialize = false;
+
+  Matrix4 get _initialTransform => Matrix4.identity()
+    ..setEntry(0, 0, widget.initialScale)
+    ..setEntry(1, 1, widget.initialScale)
+    ..setEntry(2, 2, widget.initialScale)
+    ..setEntry(0, 3, widget.initialOffset.dx)
+    ..setEntry(1, 3, widget.initialOffset.dy);
 
   @override
   void dispose() {
@@ -829,6 +844,13 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
   @override
   Widget build(BuildContext context) {
     final viewportHeight = context.windowSize.isCompact ? 420.0 : 460.0;
+    if (!_didInitialize) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _didInitialize) return;
+        _controller.value = _initialTransform;
+        _didInitialize = true;
+      });
+    }
     return SizedBox(
       height: viewportHeight,
       child: ClipRRect(
@@ -875,7 +897,7 @@ class _ZoomableTreeState extends State<_ZoomableTree> {
                     ),
                     IconButton(
                       tooltip: 'Redefinir zoom',
-                      onPressed: () => _controller.value = Matrix4.identity(),
+                      onPressed: () => _controller.value = _initialTransform,
                       icon: const Icon(Icons.center_focus_strong_rounded),
                     ),
                   ],
@@ -936,7 +958,13 @@ class _ExpandableTreeGraphState extends ConsumerState<_ExpandableTreeGraph> {
           constraints.maxWidth,
           layout.width + graphPadding * 2,
         );
+        final initialScale = math.min(1.0, constraints.maxWidth / width);
         return _ZoomableTree(
+          initialScale: initialScale,
+          initialOffset: Offset(
+            (constraints.maxWidth - width * initialScale) / 2,
+            0,
+          ),
           child: SizedBox(
             width: width,
             height: layout.height + graphPadding * 2,
