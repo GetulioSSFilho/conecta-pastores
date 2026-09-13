@@ -14,6 +14,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../application/auth_controller.dart';
 import '../data/auth_repository.dart';
+import 'landing_screen.dart';
 
 const _rememberedEmailKey = 'login.rememberedEmail';
 
@@ -328,10 +329,13 @@ class _LoginCard extends StatelessWidget {
                             height: 48,
                             child: Center(child: CircularProgressIndicator()),
                           )
-                        : AppButton(
-                            label: 'Entrar',
-                            onPressed: onSubmit,
-                            icon: Icons.arrow_forward_rounded,
+                        : Hero(
+                            tag: loginHeroTag,
+                            child: AppButton(
+                              label: 'Entrar',
+                              onPressed: onSubmit,
+                              icon: Icons.arrow_forward_rounded,
+                            ),
                           ),
                     const SizedBox(height: AppTokens.space24),
                     Center(

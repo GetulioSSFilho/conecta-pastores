@@ -21,6 +21,7 @@ void main() {
 
     expect(find.text('Conecta\nPastores'), findsOneWidget);
     expect(find.text('Fazer login'), findsOneWidget);
+    expect(find.byType(Hero), findsOneWidget);
 
     final loginButton = find.byKey(const Key('landing-login'));
     expect(tester.getSize(loginButton).width, lessThanOrEqualTo(460));

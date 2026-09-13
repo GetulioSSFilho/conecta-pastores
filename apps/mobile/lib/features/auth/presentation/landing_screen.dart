@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_brand.dart';
 
+const loginHeroTag = 'conecta-login-cta';
+
 /// Entrada publica da plataforma com uma animacao leve sobre a paisagem.
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -129,20 +131,23 @@ class _LandingScreenState extends State<LandingScreen>
                             constraints: const BoxConstraints(maxWidth: 460),
                             child: SizedBox(
                               width: double.infinity,
-                              child: FilledButton.icon(
-                                key: const Key('landing-login'),
-                                onPressed: () => context.go('/login'),
-                                icon: const Icon(Icons.login_rounded),
-                                label: const Text('Fazer login'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: AppColors.primary,
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: compact ? 12 : 15,
-                                  ),
-                                  textStyle: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 15,
+                              child: Hero(
+                                tag: loginHeroTag,
+                                child: FilledButton.icon(
+                                  key: const Key('landing-login'),
+                                  onPressed: () => context.go('/login'),
+                                  icon: const Icon(Icons.login_rounded),
+                                  label: const Text('Fazer login'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: AppColors.primary,
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: compact ? 12 : 15,
+                                    ),
+                                    textStyle: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 15,
+                                    ),
                                   ),
                                 ),
                               ),
