@@ -53,14 +53,15 @@ class _LandingScreenState extends State<LandingScreen>
                   final horizontalPadding = constraints.maxWidth < 360
                       ? 20.0
                       : 24.0;
-                  final centerBottom = compact ? 164.0 : 180.0;
+                  final narrow = constraints.maxWidth < 390;
+                  final centerBottom = compact ? 104.0 : 120.0;
 
                   return Stack(
                     children: [
                       Positioned(
                         top: 20,
                         left: horizontalPadding,
-                        right: horizontalPadding,
+                        right: narrow ? 116 : 148,
                         child: const AppBrandLockup(
                           label: 'Conecta Pastores',
                           markSize: 36,
@@ -69,6 +70,36 @@ class _LandingScreenState extends State<LandingScreen>
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 12,
+                        right: horizontalPadding,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: narrow ? 108 : 144,
+                          ),
+                          child: Hero(
+                            tag: loginHeroTag,
+                            child: FilledButton.icon(
+                              key: const Key('landing-login'),
+                              onPressed: () => context.go('/login'),
+                              icon: const Icon(Icons.login_rounded, size: 18),
+                              label: Text(narrow ? 'Entrar' : 'Fazer login'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppColors.primary,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: narrow ? 8 : 12,
+                                  vertical: compact ? 10 : 11,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -128,37 +159,6 @@ class _LandingScreenState extends State<LandingScreen>
                                 fontSize: 15,
                                 height: 1.25,
                                 fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            SizedBox(height: compact ? 12 : 20),
-                            Align(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 460,
-                                ),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: Hero(
-                                    tag: loginHeroTag,
-                                    child: FilledButton.icon(
-                                      key: const Key('landing-login'),
-                                      onPressed: () => context.go('/login'),
-                                      icon: const Icon(Icons.login_rounded),
-                                      label: const Text('Fazer login'),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: Colors.white,
-                                        foregroundColor: AppColors.primary,
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: compact ? 12 : 15,
-                                        ),
-                                        textStyle: const TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ),
                             ),
                             const SizedBox(height: 8),

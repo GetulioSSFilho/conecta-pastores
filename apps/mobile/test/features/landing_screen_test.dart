@@ -25,6 +25,7 @@ void main() {
 
     final loginButton = find.byKey(const Key('landing-login'));
     expect(tester.getSize(loginButton).width, lessThanOrEqualTo(460));
+    expect(tester.getTopLeft(loginButton).dy, lessThan(100));
     await tester.ensureVisible(loginButton);
     await tester.tap(loginButton);
     await tester.pump();
