@@ -33,6 +33,28 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Remove caches de builds antigos antes de iniciar o Flutter. Isso evita
+    // que um service worker legado entregue uma tela anterior do staging.
+    (async function () {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((registration) => registration.unregister()));
+        }
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+        }
+      } catch (_) {
+        // A inicializacao deve continuar mesmo se o navegador bloquear caches.
+      }
+
+      const script = document.createElement('script');
+      script.src = 'flutter_bootstrap.js?v=20260913-landing-cache';
+      script.async = true;
+      document.body.appendChild(script);
+    })();
+  </script>
 </body>
 </html>
