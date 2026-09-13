@@ -7,6 +7,7 @@ import '../../core/widgets/app_brand.dart';
 import '../../features/admin/presentation/admin_console_screen.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/presentation/landing_screen.dart';
 import '../../features/auth/presentation/password_screens.dart';
 import '../../features/care/presentation/care_form_screen.dart';
 import '../../features/care/presentation/care_list_screen.dart';
@@ -43,6 +44,7 @@ import '../shell/more_screen.dart';
 /// `/verify/:token` e o destino do QR Code da credencial - precisa abrir para
 /// qualquer pessoa que confira o documento.
 bool _isPublic(String path) =>
+    path == '/' ||
     path == '/login' ||
     path == '/reset-password' ||
     path.startsWith('/verify/');
@@ -89,6 +91,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             queryParameters: target == null ? null : {'from': target},
           ).toString();
         case AuthSignedIn(:final user):
+          if (path == '/') return '/dashboard';
           if (user.mustChangePassword && path != '/settings/password') {
             return '/settings/password';
           }
@@ -98,7 +101,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     errorBuilder: (context, state) => const _NotFoundScreen(),
     routes: [
-      GoRoute(path: '/', redirect: (_, _) => '/dashboard'),
+      GoRoute(path: '/', builder: (_, _) => const LandingScreen()),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(
         path: '/reset-password',
